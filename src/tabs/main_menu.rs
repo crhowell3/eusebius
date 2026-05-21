@@ -29,8 +29,15 @@ const MENU_BUTTONS: &[MenuButton] = &[
     },
 ];
 
+#[derive(Properties, PartialEq)]
+pub struct MainMenuProps {
+    pub open_tab: Callback<(String, String)>,
+}
+
 #[function_component(MainMenu)]
-pub fn main_menu() -> Html {
+pub fn main_menu(props: &MainMenuProps) -> Html {
+    let open_tab = props.open_tab.clone();
+
     html! {
         <div class="menu-backdrop">
             <div class="menu-panel">
@@ -39,13 +46,22 @@ pub fn main_menu() -> Html {
                     <p class="menu-subtitle">{"Select an action to get started"}</p>
                 </div>
                 <div class="menu-grid">
-                    {for MENU_BUTTONS.iter().map(|button| {
-                        html! {
-                            <button id={button.id} class={"menu-btn menu-btn--".to_owned() + button.variant}>
-                                {button.label}
-                            </button>
-                        }
-                    })}
+                {for MENU_BUTTONS.iter().map(|button| {
+                    let open_tab = open_tab.clone();
+                    let id = button.id.to_string();
+                    let label = button.label.to_string();
+                    html! {
+                        <button
+                            id={button.id}
+                            class={"menu-btn menu-btn--".to_owned() + button.variant}
+                            onclick={Callback::from(move |_: MouseEvent| {
+                                open_tab.emit((id.clone(), label.clone()));
+                            })}
+                        >
+                            {button.label}
+                        </button>
+                    }
+                })}
                 </div>
             </div>
         </div>

@@ -2,7 +2,10 @@ use wasm_bindgen::prelude::*;
 use web_sys::window;
 use yew::prelude::*;
 
+use crate::tabs::Baptisms;
+use crate::tabs::Deaths;
 use crate::tabs::MainMenu;
+use crate::tabs::Works;
 
 #[derive(Clone, PartialEq)]
 pub struct Tab {
@@ -39,6 +42,9 @@ fn apply_theme(dark: bool) {
 fn tab_content(id: &str, label: &str) -> Html {
     match id {
         "update-members" => html! { <></> },
+        "update-works" => html! { <Works /> },
+        "update-deaths" => html! { <Deaths /> },
+        "update-baptisms" => html! { <Baptisms /> },
         _ => html! {},
     }
 }
@@ -191,7 +197,7 @@ pub fn app() -> Html {
 
             <main class="app-main">
                 if show_main {
-                    <MainMenu />
+                    <MainMenu open_tab={open_tab} />
                 } else {
                     { non_main_tabs }
                 }
