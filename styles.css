@@ -565,7 +565,6 @@ body {
     inset: 0;
     padding: 10px;
     border: 2px solid var(--border-subtle);
-    border-radius: 0.5rem;
     background: none;
     color: var(--text-primary);
     outline: none;

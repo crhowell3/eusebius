@@ -39,7 +39,7 @@ fn apply_theme(dark: bool) {
     }
 }
 
-fn tab_content(id: &str, label: &str) -> Html {
+fn tab_content(id: &str, _label: &str) -> Html {
     match id {
         "update-members" => html! { <></> },
         "update-works" => html! { <Works /> },
