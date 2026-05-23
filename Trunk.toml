@@ -1,5 +1,6 @@
 [build]
 target = "./index.html"
+public_dir = "public"
 
 [watch]
 ignore = ["./src-tauri"]
