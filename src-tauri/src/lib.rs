@@ -1,22 +1,20 @@
-use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, SqlitePool};
-use tauri::{Manager, State};
+pub mod cmd;
+use crate::cmd::{add_work, get_works, DbState};
+use tauri::Manager;
 
-#[derive(Clone, Serialize, Deserialize, FromRow)]
-pub struct Work {
-    work_code: String,
-    description: String,
-}
+const WORKS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS works (
+    work_code       TEXT PRIMARY KEY NOT NULL,
+    description     TEXT NOT NULL
+)";
 
-pub struct DbState(pub SqlitePool);
-
-#[tauri::command]
-async fn get_works(db: State<'_, DbState>) -> Result<Vec<Work>, String> {
-    sqlx::query_as::<_, Work>("SELECT work_code, description FROM works")
-        .fetch_all(&db.0)
-        .await
-        .map_err(|e| e.to_string())
-}
+const BAPTISMS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS baptisms (
+    family_id       TEXT PRIMARY KEY NOT NULL,
+    last_name       TEXT NOT NULL,
+    first_name      TEXT NOT NULL,
+    date_baptized   TEXT NOT NULL,
+    witness         TEXT NOT NULL,
+    location        TEXT NOT NULL
+)";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -37,24 +35,24 @@ pub fn run() {
                     .await
                     .expect("failed to connect to database");
 
-                sqlx::query(
-                    "CREATE TABLE IF NOT EXISTS works (
-
-                    )",
-                )
-                .execute(&pool)
-                .await
-                .expect("failed to initialize database schema");
-                SqlitePool::connect(&db_path)
+                sqlx::query(WORKS_INIT)
+                    .execute(&pool)
                     .await
-                    .expect("failed to connect to database")
+                    .expect("failed to initialize WORKS schema");
+
+                sqlx::query(BAPTISMS_INIT)
+                    .execute(&pool)
+                    .await
+                    .expect("failed to initialize BAPTISMS schema");
+
+                pool
             });
 
             app.manage(DbState(pool));
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![get_works])
+        .invoke_handler(tauri::generate_handler![get_works, add_work])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

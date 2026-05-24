@@ -722,6 +722,66 @@ body {
     color: var(--text-tertiary);
 }
 
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-panel);
+}
+
+.results-table th,
+.results-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.results-table th {
+    background: var(--bg-surface);
+    position: sticky;
+    top: 0;
+    font-weight: 600;
+}
+
+.results-table tr:hover {
+    background: var(--row-hover);
+}
+
+/* TEMPORARY */
+
+/* Two-column split layout */
+.works-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 2rem;
+    height: 100%;
+    align-items: start;
+}
+
+/* Responsive: stack vertically on narrow windows */
+@media (max-width: 700px) {
+    .works-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.form-panel,
+.table-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.panel-title {
+    margin: 0 0 0.5rem 0;
+}
+
+.text-error {
+    color: red;
+}
+.text-muted {
+    color: gray;
+}
+
 @keyframes popup-in {
     from {
         transform: translateY(4px) scale(0.98);
