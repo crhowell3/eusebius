@@ -61,6 +61,7 @@
     --border-default: var(--color-gray-200);
     --border-strong: var(--color-gray-300);
     --border-focus: var(--color-accent-400);
+    --border-radius-none: 0px;
     --border-radius-xs: 4px;
     --border-radius-sm: 6px;
     --border-radius-md: 8px;
@@ -105,7 +106,7 @@
     --input-placeholder: var(--color-gray-400);
     --input-height: 36px;
     --input-padding: 0 12px;
-    --input-radius: var(--border-radius-md);
+    --input-radius: var(--border-radius-none);
 
     /* ── Typography ── */
     --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
@@ -235,7 +236,7 @@ body {
     font-family: var(--font-sans);
     font-size: var(--text-sm);
     font-weight: var(--weight-medium);
-    border-radius: var(--border-radius-md);
+    border-radius: var(--border-radius-none);
     border: 1px solid transparent;
     cursor: pointer;
     text-decoration: none;
@@ -496,7 +497,7 @@ body {
 /* ── Menu Buttons ── */
 .menu-btn {
     padding: 12px 16px;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--border-radius-none);
     font-family: var(--font-sans);
     font-size: var(--text-sm);
     font-weight: var(--weight-medium);
@@ -543,7 +544,7 @@ body {
     flex: 1;
     padding: 0.5rem;
     border: 1px solid var(--border-light);
-    border-radius: 4px;
+    border-radius: var(--input-radius);
     background-color: #1f1f2f;
     color: var(--text-main);
 }
@@ -564,7 +565,8 @@ body {
     position: absolute;
     inset: 0;
     padding: 10px;
-    border: 2px solid var(--border-subtle);
+    border: 2px solid var(--border-strong);
+    border-radius: var(--input-radius);
     background: none;
     color: var(--text-primary);
     outline: none;

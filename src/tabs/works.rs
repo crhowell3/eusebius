@@ -48,6 +48,20 @@ pub fn works() -> Html {
 
     html! {
         <div>
+            // Members Table View
+            <table>
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox"/>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                </tbody>
+            </table>
+
             <h3 style="margin-bottom: 1rem">{"Add Work"}</h3>
             <div class="form">
                 <input

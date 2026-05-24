@@ -1,29 +1,34 @@
 use yew::prelude::*;
 
 struct MenuButton {
-    label: &'static str,
+    tab_label: &'static str,
+    button_label: &'static str,
     id: &'static str,
     variant: &'static str,
 }
 
 const MENU_BUTTONS: &[MenuButton] = &[
     MenuButton {
-        label: "Update Members",
+        tab_label: "Members",
+        button_label: "Update Members",
         id: "update-members",
         variant: "primary",
     },
     MenuButton {
-        label: "Update Works",
+        tab_label: "Works",
+        button_label: "Update Works",
         id: "update-works",
         variant: "primary",
     },
     MenuButton {
-        label: "Update Deaths",
+        tab_label: "Deaths",
+        button_label: "Update Deaths",
         id: "update-deaths",
         variant: "primary",
     },
     MenuButton {
-        label: "Update Baptisms",
+        tab_label: "Baptisms",
+        button_label: "Update Baptisms",
         id: "update-baptisms",
         variant: "primary",
     },
@@ -49,7 +54,7 @@ pub fn main_menu(props: &MainMenuProps) -> Html {
                 {for MENU_BUTTONS.iter().map(|button| {
                     let open_tab = open_tab.clone();
                     let id = button.id.to_string();
-                    let label = button.label.to_string();
+                    let label = button.tab_label.to_string();
                     html! {
                         <button
                             id={button.id}
@@ -58,7 +63,7 @@ pub fn main_menu(props: &MainMenuProps) -> Html {
                                 open_tab.emit((id.clone(), label.clone()));
                             })}
                         >
-                            {button.label}
+                            {button.button_label}
                         </button>
                     }
                 })}
