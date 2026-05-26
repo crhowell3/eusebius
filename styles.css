@@ -283,6 +283,30 @@ body {
     background: var(--btn-ghost-bg-hover);
 }
 
+.btn-icon {
+    background: transparent;
+    color: var(--btn-danger-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background: var(--row-hover);
+}
+
+.btn-icon.danger:disabled {
+    background: var(--bg-panel);
+    color: var(--text-muted);
+    border: 1px solid var(--border-light);
+    cursor: not-allowed;
+}
+
+.btn-icon.danger {
+    color: var(--error);
+    border-color: var(--error);
+}
+
 .btn-danger {
     background: var(--btn-danger-bg);
     color: var(--btn-danger-text);

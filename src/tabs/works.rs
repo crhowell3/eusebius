@@ -84,6 +84,32 @@ fn work_table(props: &WorkTableProps) -> Html {
         <div class="table-panel">
             <h3 class="panel-title">{"Work Records"}</h3>
 
+            <button
+                class="btn btn-icon danger"
+                disabled=false
+                //onClick={() => setShowConfirm(true)}
+                title="Delete selected"
+                aria-label="Delete selected"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+            </button>
+
             if let Some(err) = (*error).clone() {
                 <p class="text-error">{ err }</p>
             }
@@ -172,57 +198,56 @@ pub fn works() -> Html {
 
     html! {
         <div class="works-layout">
-        // ── Left: Form ──────────────────────────────────────────────────
-        <div class="form-panel">
-            <h3 class="panel-title">{ "Add Work" }</h3>
+            // ── Left: Form ──────────────────────────────────────────────────
+            <div class="form-panel">
+                <h3 class="panel-title">{ "Add Work" }</h3>
 
-            if let Some(err) = (*form_error).clone() {
-                <p class="text-error">{ err }</p>
-            }
+                if let Some(err) = (*form_error).clone() {
+                    <p class="text-error">{ err }</p>
+                }
 
-            <div class="form">
-                <input
-                    type="text"
-                    name="work_code"
-                    autocomplete="off"
-                    class="form-input"
-                    placeholder=""
-                    minlength="2"
-                    maxlength="2"
-                    value={ (*new_work).work_code.clone() }
-                    onchange={ handle_work_change.clone() }
-                />
-                <label for="work_code" class="form-label">
-                    { "Work Code" }
-                </label>
+                <div class="form">
+                    <input
+                        type="text"
+                        name="work_code"
+                        autocomplete="off"
+                        class="form-input"
+                        placeholder=""
+                        minlength="2"
+                        maxlength="2"
+                        value={ (*new_work).work_code.clone() }
+                        onchange={ handle_work_change.clone() }
+                    />
+                    <label for="work_code" class="form-label">
+                        { "Work Code" }
+                    </label>
+                </div>
+
+                <div class="form">
+                    <input
+                        type="text"
+                        name="description"
+                        autocomplete="off"
+                        class="form-input"
+                        placeholder=""
+                        value={ (*new_work).description.clone() }
+                        onchange={ handle_work_change.clone() }
+                    />
+                    <label for="description" class="form-label">
+                        { "Description" }
+                    </label>
+                </div>
+
+                <button
+                    class="btn btn-primary"
+                    onclick={ handle_submit }
+                    disabled={ !is_valid }
+                >
+                    { "Add Work" }
+                </button>
             </div>
 
-            <div class="form">
-                <input
-                    type="text"
-                    name="description"
-                    autocomplete="off"
-                    class="form-input"
-                    placeholder=""
-                    value={ (*new_work).description.clone() }
-                    onchange={ handle_work_change.clone() }
-                />
-                <label for="description" class="form-label">
-                    { "Description" }
-                </label>
-            </div>
-
-            <button
-                class="btn btn-primary"
-                onclick={ handle_submit }
-                disabled={ !is_valid }
-            >
-                { "Add Work" }
-            </button>
-        </div>
-
-        // ── Right: Table ────────────────────────────────────────────────
-        <WorkTable refresh_trigger={ *refresh_trigger } />
+            <WorkTable refresh_trigger={ *refresh_trigger } />
         </div>
     }
 }
