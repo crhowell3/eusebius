@@ -2,10 +2,13 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 use tauri::State;
 
+use shared::Work;
+
 #[derive(Clone, Serialize, Deserialize, FromRow)]
-pub struct Work {
-    work_code: String,
-    description: String,
+pub struct Family {
+    family_id: String,
+    first_name: String,
+    last_name: String,
 }
 
 pub struct DbState(pub SqlitePool);

@@ -1,12 +1,13 @@
-use serde::Serialize;
-use serde_wasm_bindgen::{from_value, to_value};
+use serde::{Deserialize, Serialize};
+use serde_wasm_bindgen::from_value;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
-use shared::Work;
+use shared::Child;
+use shared::Spouse;
 
 #[wasm_bindgen]
 extern "C" {
@@ -14,39 +15,45 @@ extern "C" {
     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
 }
 
-#[derive(Serialize)]
-struct AddWorkArgs {
-    work: Work,
+#[derive(Clone, Serialize, Deserialize)]
+struct Family {
+    family_id: String,
+    first_name: String,
+    last_name: String,
+    children: Vec<Child>,
+    spouse: Spouse,
 }
 
-async fn fetch_works() -> Result<Vec<Work>, String> {
-    let result = invoke("get_works", JsValue::UNDEFINED).await;
-    from_value::<Vec<Work>>(result).map_err(|e| e.to_string())
-}
-
-async fn add_work(work: Work) -> Result<(), String> {
-    let args = to_value(&AddWorkArgs { work }).map_err(|e| e.to_string())?;
-    let result = invoke("add_work", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
+impl Family {
+    pub fn new() -> Self {
+        Self {
+            family_id: String::new(),
+            first_name: String::new(),
+            last_name: String::new(),
+            children: vec![],
+            spouse: Spouse::new(),
+        }
     }
 }
 
+async fn fetch_families() -> Result<Vec<Family>, String> {
+    let result = invoke("get_families", JsValue::UNDEFINED).await;
+    from_value::<Vec<Family>>(result).map_err(|e| e.to_string())
+}
+
 #[derive(Properties, PartialEq)]
-struct WorkTableProps {
+struct FamiliesTableProps {
     pub refresh_trigger: u32,
 }
 
-#[function_component(WorkTable)]
-fn work_table(props: &WorkTableProps) -> Html {
-    let works = use_state(Vec::new);
+#[function_component(FamiliesTable)]
+fn families_table(props: &FamiliesTableProps) -> Html {
+    let members = use_state(Vec::new);
     let loading = use_state(|| true);
     let error = use_state(|| None::<String>);
 
     {
-        let works = works.clone();
+        let members = members.clone();
         let loading = loading.clone();
         let error = error.clone();
         let trigger = props.refresh_trigger;
@@ -54,9 +61,9 @@ fn work_table(props: &WorkTableProps) -> Html {
         use_effect_with(trigger, move |_| {
             loading.set(true);
             spawn_local(async move {
-                match fetch_works().await {
+                match fetch_families().await {
                     Ok(data) => {
-                        works.set(data);
+                        members.set(data);
                         error.set(None);
                     }
                     Err(e) => error.set(Some(e)),
@@ -69,7 +76,7 @@ fn work_table(props: &WorkTableProps) -> Html {
 
     html! {
         <div class="table-panel">
-            <h3 class="panel-title">{"Work Records"}</h3>
+            <h3 class="panel-title">{"Family Records"}</h3>
 
             <button
                 class="btn btn-icon danger"
@@ -103,21 +110,23 @@ fn work_table(props: &WorkTableProps) -> Html {
 
             if *loading {
                 <p class="text-muted">{ "Loading..." }</p>
-            } else if (*works).is_empty() {
+            } else if (*members).is_empty() {
                 <p class="text-muted">{ "No records found." }</p>
             } else {
                 <table class="results-table">
                     <thead>
                         <tr>
-                            <th>{ "Work Code" }</th>
-                            <th>{ "Description" }</th>
+                            <th>{ "Family ID" }</th>
+                            <th>{ "First Name" }</th>
+                            <th>{ "Last Name" }</th>
                         </tr>
                     </thead>
                     <tbody>
-                        { for (*works).iter().map(|w| html! {
-                            <tr key={w.work_code.clone()}>
-                                <td>{ &w.work_code }</td>
-                                <td>{ &w.description }</td>
+                        { for (*members).iter().map(|m| html! {
+                            <tr key={m.family_id.clone()}>
+                                <td>{ &m.family_id }</td>
+                                <td>{ &m.first_name }</td>
+                                <td>{ &m.last_name }</td>
                             </tr>
                         })}
                     </tbody>
@@ -127,14 +136,14 @@ fn work_table(props: &WorkTableProps) -> Html {
     }
 }
 
-#[function_component(Works)]
-pub fn works() -> Html {
+#[function_component(Families)]
+pub fn families() -> Html {
     let form_error = use_state(|| None::<String>);
-    let new_work = use_state(Work::default);
+    let new_family = use_state(|| Family::new());
     let refresh_trigger = use_state(|| 0u32);
 
-    let handle_work_change = {
-        let new_work = new_work.clone();
+    let handle_family_change = {
+        let new_family = new_family.clone();
         Callback::from(move |e: Event| {
             let target = e.target().unwrap();
 
@@ -146,48 +155,38 @@ pub fn works() -> Html {
                 return;
             };
 
-            let mut updated = (*new_work).clone();
+            let mut updated = (*new_family).clone();
 
             match name.as_str() {
-                "work_code" => updated.work_code = value,
-                "description" => updated.description = value,
+                "family_id" => updated.family_id = value,
                 _ => {}
             }
-            new_work.set(updated);
+            new_family.set(updated);
         })
     };
 
     let handle_submit = {
-        let new_work = new_work.clone();
+        let new_family = new_family.clone();
         let form_error = form_error.clone();
         let refresh_trigger = refresh_trigger.clone();
+
         Callback::from(move |_: MouseEvent| {
-            let work = (*new_work).clone();
+            let family = (*new_family).clone();
             let form_error = form_error.clone();
-            let new_work = new_work.clone();
+            let new_family = new_family.clone();
             let refresh_trigger = refresh_trigger.clone();
             spawn_local(async move {
-                match add_work(work).await {
-                    Ok(_) => {
-                        // Clear the form
-                        new_work.set(Work::default());
-                        form_error.set(None);
-                        // Trigger table re-fetch
-                        refresh_trigger.set(*refresh_trigger + 1);
-                    }
-                    Err(e) => form_error.set(Some(e)),
-                }
+                // replace
             });
         })
     };
 
-    let is_valid = !new_work.work_code.is_empty() && !new_work.description.is_empty();
+    let is_valid = !new_family.family_id.is_empty();
 
     html! {
         <div class="works-layout">
-            // ── Left: Form ──────────────────────────────────────────────────
             <div class="form-panel">
-                <h3 class="panel-title">{ "Add Work" }</h3>
+                <h3 class="panel-title">{"Add Family"}</h3>
 
                 if let Some(err) = (*form_error).clone() {
                     <p class="text-error">{ err }</p>
@@ -195,33 +194,18 @@ pub fn works() -> Html {
 
                 <div class="form">
                     <input
-                        type="text"
-                        name="work_code"
-                        autocomplete="off"
+                        type="number"
+                        name="family_id"
                         class="form-input"
                         placeholder=""
-                        minlength="2"
-                        maxlength="2"
-                        value={ (*new_work).work_code.clone() }
-                        onchange={ handle_work_change.clone() }
+                        autoComplete="off"
+                        min=1
+                        step=1
+                        value={(*new_family).clone().family_id}
+                        onchange={handle_family_change.clone()}
                     />
-                    <label for="work_code" class="form-label">
-                        { "Work Code" }
-                    </label>
-                </div>
-
-                <div class="form">
-                    <input
-                        type="text"
-                        name="description"
-                        autocomplete="off"
-                        class="form-input"
-                        placeholder=""
-                        value={ (*new_work).description.clone() }
-                        onchange={ handle_work_change.clone() }
-                    />
-                    <label for="description" class="form-label">
-                        { "Description" }
+                    <label htmlFor="family_id" class="form-label">
+                        {"Family ID"}
                     </label>
                 </div>
 
@@ -230,11 +214,11 @@ pub fn works() -> Html {
                     onclick={ handle_submit }
                     disabled={ !is_valid }
                 >
-                    { "Add Work" }
+                    {"Add Family"}
                 </button>
             </div>
 
-            <WorkTable refresh_trigger={ *refresh_trigger } />
+            <FamiliesTable refresh_trigger={ *refresh_trigger } />
         </div>
     }
 }

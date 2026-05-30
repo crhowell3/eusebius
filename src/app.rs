@@ -5,7 +5,7 @@ use yew::prelude::*;
 use crate::tabs::Baptisms;
 use crate::tabs::Deaths;
 use crate::tabs::MainMenu;
-use crate::tabs::Members;
+use crate::tabs::MemberTabBody;
 use crate::tabs::Works;
 
 #[derive(Clone, PartialEq)]
@@ -42,7 +42,7 @@ fn apply_theme(dark: bool) {
 
 fn tab_content(id: &str, _label: &str) -> Html {
     match id {
-        "update-members" => html! { <Members /> },
+        "update-members" => html! { <MemberTabBody /> },
         "update-works" => html! { <Works /> },
         "update-deaths" => html! { <Deaths /> },
         "update-baptisms" => html! { <Baptisms /> },

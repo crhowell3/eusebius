@@ -7,5 +7,5 @@ pub mod works;
 pub use baptisms::Baptisms;
 pub use deaths::Deaths;
 pub use main_menu::MainMenu;
-pub use members::Members;
+pub use members::MemberTabBody;
 pub use works::Works;
