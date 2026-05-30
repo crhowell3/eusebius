@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::from_value;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::{JsCast, JsValue};
@@ -6,34 +5,12 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
-use shared::Child;
-use shared::Spouse;
+use shared::Family;
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-struct Family {
-    family_id: String,
-    first_name: String,
-    last_name: String,
-    children: Vec<Child>,
-    spouse: Spouse,
-}
-
-impl Family {
-    pub fn new() -> Self {
-        Self {
-            family_id: String::new(),
-            first_name: String::new(),
-            last_name: String::new(),
-            children: vec![],
-            spouse: Spouse::new(),
-        }
-    }
 }
 
 async fn fetch_families() -> Result<Vec<Family>, String> {
