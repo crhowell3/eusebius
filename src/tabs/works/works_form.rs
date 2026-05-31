@@ -7,7 +7,7 @@ use yew::prelude::*;
 
 use crate::utils::invoke;
 
-use shared::{Work, WorkAction};
+use shared::{GenericAction, Work};
 
 #[derive(Serialize)]
 struct AddWorkArgs {
@@ -46,7 +46,7 @@ pub fn works_form(props: &WorksFormProps) -> Html {
             } else {
                 return;
             };
-            new_work.dispatch(WorkAction::SetField { name, value });
+            new_work.dispatch(GenericAction::SetField { name, value });
         })
     };
 
@@ -62,7 +62,7 @@ pub fn works_form(props: &WorksFormProps) -> Html {
             spawn_local(async move {
                 match add_work(work).await {
                     Ok(_) => {
-                        new_work.dispatch(WorkAction::Reset);
+                        new_work.dispatch(GenericAction::Reset);
                         form_error.set(None);
                         on_work_added.emit(());
                     }
@@ -75,53 +75,52 @@ pub fn works_form(props: &WorksFormProps) -> Html {
     let is_valid = !new_work.work_code.is_empty() && !new_work.description.is_empty();
 
     html! {
+        <div class="form-panel">
+            <h3 class="panel-title">{ "Add Work" }</h3>
 
-            <div class="form-panel">
-                <h3 class="panel-title">{ "Add Work" }</h3>
+            if let Some(err) = (*form_error).as_deref() {
+                <p class="text-error">{ err }</p>
+            }
 
-                if let Some(err) = (*form_error).as_deref() {
-                    <p class="text-error">{ err }</p>
-                }
-
-                <div class="form">
-                    <input
-                        type="text"
-                        name="work_code"
-                        autocomplete="off"
-                        class="form-input"
-                        placeholder=""
-                        minlength="2"
-                        maxlength="2"
-                        value={ new_work.work_code.clone() }
-                        oninput={ handle_work_change.clone() }
-                    />
-                    <label for="work_code" class="form-label">
-                        { "Work Code" }
-                    </label>
-                </div>
-
-                <div class="form">
-                    <input
-                        type="text"
-                        name="description"
-                        autocomplete="off"
-                        class="form-input"
-                        placeholder=""
-                        value={ new_work.description.clone() }
-                        oninput={ handle_work_change.clone() }
-                    />
-                    <label for="description" class="form-label">
-                        { "Description" }
-                    </label>
-                </div>
-
-                <button
-                    class="btn btn-primary"
-                    onclick={ handle_submit }
-                    disabled={ !is_valid }
-                >
-                    { "Add Work" }
-                </button>
+            <div class="form">
+                <input
+                    type="text"
+                    name="work_code"
+                    autocomplete="off"
+                    class="form-input"
+                    placeholder=""
+                    minlength="2"
+                    maxlength="2"
+                    value={ new_work.work_code.clone() }
+                    oninput={ handle_work_change.clone() }
+                />
+                <label for="work_code" class="form-label">
+                    { "Work Code" }
+                </label>
             </div>
+
+            <div class="form">
+                <input
+                    type="text"
+                    name="description"
+                    autocomplete="off"
+                    class="form-input"
+                    placeholder=""
+                    value={ new_work.description.clone() }
+                    oninput={ handle_work_change.clone() }
+                />
+                <label for="description" class="form-label">
+                    { "Description" }
+                </label>
+            </div>
+
+            <button
+                class="btn btn-primary"
+                onclick={ handle_submit }
+                disabled={ !is_valid }
+            >
+                { "Add Work" }
+            </button>
+        </div>
     }
 }
