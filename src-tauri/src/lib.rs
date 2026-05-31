@@ -1,5 +1,5 @@
 pub mod cmd;
-use crate::cmd::{add_work, get_works, DbState};
+use crate::cmd::*;
 use tauri::Manager;
 
 const WORKS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS works (
@@ -14,6 +14,30 @@ const BAPTISMS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS baptisms (
     date_baptized   TEXT NOT NULL,
     witness         TEXT NOT NULL,
     location        TEXT NOT NULL
+)";
+
+const FAMILIES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS families (
+    family_id       TEXT PRIMARY KEY NOT NULL,
+    first_name      TEXT NOT NULL,
+    last_name       TEXT NOT NULL
+)";
+
+const SPOUSES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS spouses (
+    family_id       TEXT PRIMARY KEY NOT NULL,
+    first_name      TEXT NOT NULL,
+    last_name       TEXT NOT NULL,
+    FOREIGN KEY (family_id) REFERENCES families(family_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+)";
+
+const CHILDREN_INIT: &'static str = "CREATE TABLE IF NOT EXISTS children (
+    family_id       TEXT PRIMARY KEY NOT NULL,
+    first_name      TEXT NOT NULL,
+    last_name       TEXT NOT NULL,
+    FOREIGN KEY (family_id) REFERENCES families(family_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 )";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -35,6 +59,11 @@ pub fn run() {
                     .await
                     .expect("failed to connect to database");
 
+                sqlx::query("PRAGMA foreign_keys = ON")
+                    .execute(&pool)
+                    .await
+                    .expect("failed to enable foreign keys");
+
                 sqlx::query(WORKS_INIT)
                     .execute(&pool)
                     .await
@@ -45,6 +74,21 @@ pub fn run() {
                     .await
                     .expect("failed to initialize BAPTISMS schema");
 
+                sqlx::query(FAMILIES_INIT)
+                    .execute(&pool)
+                    .await
+                    .expect("failed to initialize FAMILIES schema");
+
+                sqlx::query(SPOUSES_INIT)
+                    .execute(&pool)
+                    .await
+                    .expect("failed to initialize SPOUSES schema");
+
+                sqlx::query(CHILDREN_INIT)
+                    .execute(&pool)
+                    .await
+                    .expect("failed to initialize CHILDREN schema");
+
                 pool
             });
 
@@ -52,7 +96,15 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![get_works, add_work])
+        .invoke_handler(tauri::generate_handler![
+            add_child,
+            add_spouse,
+            get_children,
+            get_families,
+            get_spouse,
+            get_works,
+            add_work
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

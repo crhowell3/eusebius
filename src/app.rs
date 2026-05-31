@@ -2,11 +2,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::window;
 use yew::prelude::*;
 
-use crate::tabs::Baptisms;
-use crate::tabs::Deaths;
-use crate::tabs::MainMenu;
-use crate::tabs::MemberTabBody;
-use crate::tabs::Works;
+use crate::tabs::{About, Baptisms, Deaths, MainMenu, MemberTabBody, WorkTabBody};
 
 #[derive(Clone, PartialEq)]
 pub struct Tab {
@@ -43,9 +39,10 @@ fn apply_theme(dark: bool) {
 fn tab_content(id: &str, _label: &str) -> Html {
     match id {
         "update-members" => html! { <MemberTabBody /> },
-        "update-works" => html! { <Works /> },
+        "update-works" => html! { <WorkTabBody /> },
         "update-deaths" => html! { <Deaths /> },
         "update-baptisms" => html! { <Baptisms /> },
+        "about" => html! { <About /> },
         _ => html! {},
     }
 }
@@ -53,21 +50,25 @@ fn tab_content(id: &str, _label: &str) -> Html {
 #[function_component(App)]
 pub fn app() -> Html {
     let dark = use_state(|| local_storage_get("theme").as_deref() == Some("dark"));
-
     let tabs = use_state(|| {
         vec![Tab {
             id: "main".to_string(),
             label: "Main Menu".to_string(),
         }]
     });
-
     let active_tab = use_state(|| "main".to_string());
 
+    let is_mounted = use_state(|| false);
     {
         let dark = dark.clone();
+        let is_mounted = is_mounted.clone();
         use_effect_with(*dark, move |&is_dark| {
             apply_theme(is_dark);
-            local_storage_set("theme", if is_dark { "dark" } else { "light" });
+            if *is_mounted {
+                local_storage_set("theme", if is_dark { "dark" } else { "light" });
+            } else {
+                is_mounted.set(true);
+            }
             || ()
         });
     }
@@ -112,72 +113,7 @@ pub fn app() -> Html {
         Callback::from(move |id: String| active_tab.set(id))
     };
 
-    let tab_bar = {
-        let tabs_val = (*tabs).clone();
-        let active = (*active_tab).clone();
-        let switch_tab = switch_tab.clone();
-        let close_tab = close_tab.clone();
-
-        tabs_val
-            .into_iter()
-            .map(|tab| {
-                let is_active = tab.id == active;
-                let class = if is_active { "tab tab--active" } else { "tab" };
-
-                let on_click = {
-                    let id = tab.id.clone();
-                    let switch_tab = switch_tab.clone();
-                    Callback::from(move |_: MouseEvent| switch_tab.emit(id.clone()))
-                };
-
-                let close_btn = if tab.id != "main" {
-                    let id = tab.id.clone();
-                    let close_tab = close_tab.clone();
-                    let label = tab.label.clone();
-                    html! {
-                        <span
-                            class="tab-close"
-                            aria-label={format!("Close {}", label)}
-                            onclick={Callback::from(move |e: MouseEvent| {
-                                e.stop_propagation();
-                                close_tab.emit(id.clone());
-                            })}
-                        >
-                            { "×" }
-                        </span>
-                    }
-                } else {
-                    html! {}
-                };
-
-                html! {
-                    <button key={tab.id.clone()} class={class} onclick={on_click}>
-                        { &tab.label }
-                        { close_btn }
-                    </button>
-                }
-            })
-            .collect::<Html>()
-    };
-
-    let non_main_tabs = {
-        let tabs_val = (*tabs).clone();
-        let active = (*active_tab).clone();
-
-        tabs_val
-            .into_iter()
-            .filter(|t| t.id != "main")
-            .map(|tab| {
-                let display = if tab.id == active { "block" } else { "none" };
-                html! {
-                    <div key={tab.id.clone()} style={format!("display:{display}")}>
-                        { tab_content(&tab.id, &tab.label) }
-                    </div>
-                }
-            })
-            .collect::<Html>()
-    };
-
+    let active = (*active_tab).clone();
     let show_main = *active_tab == "main";
 
     html! {
@@ -193,14 +129,62 @@ pub fn app() -> Html {
             </header>
 
             <div class="tab-bar">
-                {tab_bar}
+                { for (*tabs).iter().map(|tab| {
+                    let is_active = tab.id == active;
+                    let class = if is_active { "tab tab--active" } else { "tab" };
+
+                    let on_click = {
+                        let id = tab.id.clone();
+                        let switch_tab = switch_tab.clone();
+                        Callback::from(move |_: MouseEvent| switch_tab.emit(id.clone()))
+                    };
+
+                    let close_btn = if tab.id != "main" {
+                        let id = tab.id.clone();
+                        let close_tab = close_tab.clone();
+                        let label = tab.label.clone();
+                        html! {
+                            <span
+                                class="tab-close"
+                                aria-label={ format!("Close {}", label) }
+                                onclick={ Callback::from(move |e: MouseEvent| {
+                                    e.stop_propagation();
+                                    close_tab.emit(id.clone());
+                                }) }
+                            >
+                                { "×" }
+                            </span>
+                        }
+                    } else {
+                        html! {}
+                    };
+
+                    html! {
+                        <button key={ tab.id.clone() } class={class} onclick={on_click}>
+                            { &tab.label }
+                            { close_btn }
+                        </button>
+                    }
+                }) }
             </div>
 
             <main class="app-main">
                 if show_main {
                     <MainMenu open_tab={open_tab} />
-                } else {
-                    { non_main_tabs }
+                }
+
+                {
+                    for (*tabs).iter().filter(|t| t.id != "main").map(|tab| {
+                        let visible = tab.id == active;
+                        html! {
+                            <div
+                                key={ tab.id.clone() }
+                                class={ if visible { "tab-content tab-content--active" } else { "tab-content" } }
+                            >
+                                { tab_content(&tab.id, &tab.label) }
+                            </div>
+                        }
+                    })
                 }
             </main>
         </div>

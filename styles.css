@@ -746,6 +746,13 @@ body {
     color: var(--text-tertiary);
 }
 
+.tab-content {
+    display: none;
+}
+.tab-content--active {
+    display: block;
+}
+
 .results-table {
     width: 100%;
     border-collapse: collapse;

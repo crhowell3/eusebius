@@ -32,6 +32,12 @@ const MENU_BUTTONS: &[MenuButton] = &[
         id: "update-baptisms",
         variant: "primary",
     },
+    MenuButton {
+        tab_label: "About",
+        button_label: "About",
+        id: "about",
+        variant: "secondary",
+    },
 ];
 
 #[derive(Properties, PartialEq)]

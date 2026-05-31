@@ -1,17 +1,11 @@
 use serde_wasm_bindgen::from_value;
-use wasm_bindgen::prelude::*;
+use shared::Family;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
-use shared::Family;
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
-    async fn invoke(cmd: &str, args: JsValue) -> JsValue;
-}
+use crate::utils::invoke;
 
 async fn fetch_families() -> Result<Vec<Family>, String> {
     let result = invoke("get_families", JsValue::UNDEFINED).await;
@@ -94,16 +88,46 @@ fn families_table(props: &FamiliesTableProps) -> Html {
                     <thead>
                         <tr>
                             <th>{ "Family ID" }</th>
-                            <th>{ "First Name" }</th>
+                            <th>{ "Mail Route "}</th>
                             <th>{ "Last Name" }</th>
+                            <th>{ "First Name" }</th>
+                            <th>{ "Member?" }</th>
+                            <th>{ "Active?" }</th>
+                            <th>{ "DOB" }</th>
+                            <th>{ "Anniversary Month" }</th>
+                            <th>{ "Anniversary Day" }</th>
+                            <th>{ "Home Phone" }</th>
+                            <th>{ "Cell Phone" }</th>
+                            <th>{ "Work Phone" }</th>
+                            <th>{ "Address" }</th>
+                            <th>{ "City" }</th>
+                            <th>{ "State" }</th>
+                            <th>{ "ZIP" }</th>
+                            <th>{ "E-Mail Address" }</th>
+                            <th>{ "Bulletin E-Mail List?" }</th>
                         </tr>
                     </thead>
                     <tbody>
                         { for (*members).iter().map(|m| html! {
                             <tr key={m.family_id.clone()}>
                                 <td>{ &m.family_id }</td>
-                                <td>{ &m.first_name }</td>
+                                <td>{ &m.mail_route }</td>
                                 <td>{ &m.last_name }</td>
+                                <td>{ &m.first_name }</td>
+                                <td>{ &m.is_member }</td>
+                                <td>{ &m.is_active }</td>
+                                <td>{ &m.date_of_birth }</td>
+                                <td>{ &m.anniversary_month }</td>
+                                <td>{ &m.anniversary_day }</td>
+                                <td>{ &m.home_phone }</td>
+                                <td>{ &m.cell_phone }</td>
+                                <td>{ &m.work_phone }</td>
+                                <td>{ &m.address }</td>
+                                <td>{ &m.city }</td>
+                                <td>{ &m.state }</td>
+                                <td>{ &m.zip }</td>
+                                <td>{ &m.email_address }</td>
+                                <td>{ &m.on_bulletin_email_list }</td>
                             </tr>
                         })}
                     </tbody>
@@ -136,6 +160,14 @@ pub fn families() -> Html {
 
             match name.as_str() {
                 "family_id" => updated.family_id = value,
+                "mail_route" => updated.mail_route = value,
+                "last_name" => updated.last_name = value,
+                "first_name" => updated.first_name = value,
+                // "is_member" => updated.is_member = value,
+                // "is_active" => updated.is_active = value,
+                "date_of_birth" => updated.date_of_birth = value,
+                "anniversary_month" => updated.anniversary_month = value,
+                "anniversary_day" => updated.anniversary_day = value,
                 _ => {}
             }
             new_family.set(updated);
