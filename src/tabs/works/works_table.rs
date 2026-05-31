@@ -20,17 +20,14 @@ async fn fetch_works() -> Result<Vec<Work>, String> {
 #[function_component(WorksTable)]
 pub fn works_table(props: &WorksTableProps) -> Html {
     let works = use_state(Vec::new);
-    let loading = use_state(|| true);
     let error = use_state(|| None::<String>);
 
     {
         let works = works.clone();
-        let loading = loading.clone();
         let error = error.clone();
         let trigger = props.refresh_trigger;
 
         use_effect_with(trigger, move |_| {
-            loading.set(true);
             spawn_local(async move {
                 match fetch_works().await {
                     Ok(data) => {
@@ -39,7 +36,6 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                     }
                     Err(e) => error.set(Some(e)),
                 }
-                loading.set(false);
             });
             || ()
         });
@@ -79,9 +75,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                 <p class="text-error">{ err }</p>
             }
 
-            if *loading {
-                <p class="text-muted">{ "Loading..." }</p>
-            } else if (*works).is_empty() {
+            if (*works).is_empty() {
                 <p class="text-muted">{ "No records found." }</p>
             } else {
                 <table class="results-table">

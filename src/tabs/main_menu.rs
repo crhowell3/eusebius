@@ -33,8 +33,14 @@ const MENU_BUTTONS: &[MenuButton] = &[
         variant: "primary",
     },
     MenuButton {
+        tab_label: "Settings",
+        button_label: "Settings",
+        id: "settings",
+        variant: "secondary",
+    },
+    MenuButton {
         tab_label: "About",
-        button_label: "About",
+        button_label: "About Eusebius",
         id: "about",
         variant: "secondary",
     },

@@ -2,7 +2,9 @@ use wasm_bindgen::prelude::*;
 use web_sys::window;
 use yew::prelude::*;
 
-use crate::tabs::{About, Baptisms, Deaths, MainMenu, MemberTabBody, WorkTabBody};
+use crate::tabs::{About, Baptisms, Deaths, MainMenu, MemberTabBody, Settings, WorkTabBody};
+
+const COMMIT: &str = env!("GIT_COMMIT_HASH");
 
 #[derive(Clone, PartialEq)]
 pub struct Tab {
@@ -42,7 +44,8 @@ fn tab_content(id: &str, _label: &str) -> Html {
         "update-works" => html! { <WorkTabBody /> },
         "update-deaths" => html! { <Deaths /> },
         "update-baptisms" => html! { <Baptisms /> },
-        "about" => html! { <About /> },
+        "settings" => html! { <Settings /> },
+        "about" => html! { <About version={env!("CARGO_PKG_VERSION")} commit={COMMIT} /> },
         _ => html! {},
     }
 }
