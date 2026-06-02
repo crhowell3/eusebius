@@ -1,5 +1,9 @@
 use yew::prelude::*;
 
+use crate::utils::invoke;
+use wasm_bindgen::JsValue;
+use wasm_bindgen_futures::spawn_local;
+
 struct MenuButton {
     tab_label: &'static str,
     button_label: &'static str,
@@ -33,6 +37,18 @@ const MENU_BUTTONS: &[MenuButton] = &[
         variant: "primary",
     },
     MenuButton {
+        tab_label: "View Tables",
+        button_label: "View Tables",
+        id: "view-tables",
+        variant: "primary",
+    },
+    MenuButton {
+        tab_label: "Backup",
+        button_label: "Perform Backup",
+        id: "perform-backup",
+        variant: "primary",
+    },
+    MenuButton {
         tab_label: "Settings",
         button_label: "Settings",
         id: "settings",
@@ -54,6 +70,12 @@ pub struct MainMenuProps {
 #[function_component(MainMenu)]
 pub fn main_menu(props: &MainMenuProps) -> Html {
     let open_tab = props.open_tab.clone();
+
+    let on_exit = Callback::from(move |_: MouseEvent| {
+        spawn_local(async move {
+            invoke("exit_app", JsValue::UNDEFINED).await;
+        });
+    });
 
     html! {
         <div class="menu-panel">
@@ -78,6 +100,16 @@ pub fn main_menu(props: &MainMenuProps) -> Html {
                     </button>
                 }
             })}
+            </div>
+            <div style="display: flex; flex-direction: column; padding: 1rem 0; width: 100%; justify-content: center; align-items: center">
+                <button
+                    id="exit-application"
+                    class="menu-btn menu-btn--exit"
+                    style="width: 10%; text-align: center"
+                    onclick={ on_exit }
+                >
+                    {"Exit"}
+                </button>
             </div>
         </div>
     }
