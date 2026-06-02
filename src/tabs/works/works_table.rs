@@ -158,13 +158,13 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                 <table class="results-table">
                     <thead>
                         <tr>
-                        <th>
-                            <input
-                                type="checkbox"
-                                checked={ all_checked }
-                                onchange={ on_select_all }
-                            />
-                        </th>
+                            <th>
+                                <input
+                                    type="checkbox"
+                                    checked={ all_checked }
+                                    onchange={ on_select_all }
+                                />
+                            </th>
                             <th>{ "Work Code" }</th>
                             <th>{ "Description" }</th>
                         </tr>

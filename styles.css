@@ -1,6 +1,3 @@
-@import "tailwindcss";
-@import "tailwindcss/preflight";
-
 :root {
     /* ── Colors ── */
     --color-white: #ffffff;
@@ -295,7 +292,7 @@ body {
 }
 
 .btn-icon.danger:disabled {
-    background: var(--bg-panel);
+    background: var(--bg-page);
     color: var(--text-muted);
     border: 1px solid var(--border-light);
     cursor: not-allowed;
@@ -586,7 +583,6 @@ body {
     color: var(--text-muted);
 }
 
-/* Floating label input */
 .form {
     position: relative;
     width: 20rem;
@@ -598,10 +594,12 @@ body {
     position: absolute;
     inset: 0;
     padding: 10px;
-    border: 2px solid var(--border-strong);
+    border: 1px solid var(--border-strong);
     border-radius: var(--input-radius);
-    background: none;
+    background: transparent;
     color: var(--text-primary);
+    box-sizing: border-box;
+    transition: border-color 0.2s;
     outline: none;
 }
 
@@ -619,25 +617,24 @@ body {
 
 .form-label {
     position: absolute;
-    top: 0.8rem;
-    left: 1rem;
-    padding: 0 0.5rem;
-    background-color: var(--bg-panel);
+    top: -0.55rem;
+    left: 0.65rem;
+    padding: 0 0.25rem;
+    font-size: 0.75rem;
+    background-color: var(--bg-page);
     color: var(--text-primary);
-    transition: 200ms ease;
+    pointer-events: none;
+    transition: color 0.2s;
     cursor: text;
 }
 
-.form-input:focus ~ .form-label,
-.form-input:not(:placeholder-shown) ~ .form-label {
-    top: -0.5rem;
-    left: 0.8rem;
-    font-size: 0.8rem;
+.form:focus-within .form-label {
+    color: var(--color-accent-400);
 }
 
 .add-filter,
 .clear-query {
-    background-color: var(--bg-panel);
+    background-color: var(--bg-page);
     color: var(--text-main);
     border: 1px solid var(--border-light);
     padding: 0.6rem 1rem;
@@ -660,7 +657,7 @@ body {
 }
 
 .run-query:disabled {
-    background-color: var(--bg-panel);
+    background-color: var(--bg-page);
     color: var(--text-muted);
     border: 1px solid var(--border-light);
     cursor: not-allowed;
@@ -765,7 +762,7 @@ body {
 .results-table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--bg-panel);
+    background: var(--bg-page);
 }
 
 .results-table th,
