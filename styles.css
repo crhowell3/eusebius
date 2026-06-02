@@ -285,7 +285,6 @@ body {
 
 .btn-icon {
     background: transparent;
-    color: var(--btn-danger-text);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -303,7 +302,7 @@ body {
 }
 
 .btn-icon.danger {
-    color: var(--error);
+    color: var(--btn-danger-text);
     border-color: var(--error);
 }
 
@@ -486,7 +485,7 @@ body {
 
 /* ── Menu Panel ── */
 .menu-panel {
-    width: 600px;
+    width: 55%;
     background: var(--bg-surface);
     border: 1px solid var(--border-default);
     border-radius: var(--border-radius-lg);
@@ -551,6 +550,16 @@ body {
 }
 .menu-btn--secondary:hover {
     background: var(--btn-secondary-bg-hover);
+}
+
+.menu-btn--exit {
+    background: var(--btn-danger-bg);
+    color: var(--btn-danger-text);
+    border: 1px solid var(--btn-danger-border);
+}
+
+.menu-btn--exit:hover {
+    background: var(--btn-danger-hover);
 }
 
 /* =========================================================

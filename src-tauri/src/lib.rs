@@ -96,15 +96,18 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(tauri::generate_handler![
             add_child,
             add_spouse,
+            delete_works,
             get_children,
             get_families,
             get_spouse,
             get_works,
-            add_work
+            add_work,
+            exit_app,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

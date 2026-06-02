@@ -1,4 +1,7 @@
-use serde_wasm_bindgen::from_value;
+use std::collections::HashSet;
+
+use serde::Serialize;
+use serde_wasm_bindgen::{from_value, to_value};
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
@@ -17,14 +20,32 @@ async fn fetch_works() -> Result<Vec<Work>, String> {
     from_value::<Vec<Work>>(result).map_err(|e| e.to_string())
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DeleteWorksArgs {
+    work_codes: Vec<String>,
+}
+
+async fn delete_works(work_codes: Vec<String>) -> Result<(), String> {
+    let args = to_value(&DeleteWorksArgs { work_codes }).map_err(|e| e.to_string())?;
+    let result = invoke("delete_works", args).await;
+    if result.is_undefined() || result.is_null() {
+        Ok(())
+    } else {
+        Err(result.as_string().unwrap_or("Unknown error".to_string()))
+    }
+}
+
 #[function_component(WorksTable)]
 pub fn works_table(props: &WorksTableProps) -> Html {
     let works = use_state(Vec::new);
     let error = use_state(|| None::<String>);
+    let selected = use_state(HashSet::<String>::new);
 
     {
         let works = works.clone();
         let error = error.clone();
+        let selected = selected.clone();
         let trigger = props.refresh_trigger;
 
         use_effect_with(trigger, move |_| {
@@ -33,6 +54,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                     Ok(data) => {
                         works.set(data);
                         error.set(None);
+                        selected.set(HashSet::new());
                     }
                     Err(e) => error.set(Some(e)),
                 }
@@ -41,14 +63,69 @@ pub fn works_table(props: &WorksTableProps) -> Html {
         });
     }
 
+    let all_checked =
+        !(*works).is_empty() && (*works).iter().all(|w| (*selected).contains(&w.work_code));
+    let some_checked = !(*selected).is_empty();
+
+    let on_row_toggle = {
+        let selected = selected.clone();
+        Callback::from(move |work_code: String| {
+            let mut next = (*selected).clone();
+            if next.contains(&work_code) {
+                next.remove(&work_code);
+            } else {
+                next.insert(work_code);
+            }
+            selected.set(next);
+        })
+    };
+
+    let on_select_all = {
+        let works = works.clone();
+        let selected = selected.clone();
+        Callback::from(move |_: Event| {
+            if (*works).iter().all(|w| (*selected).contains(&w.work_code)) {
+                selected.set(HashSet::new());
+            } else {
+                selected.set((*works).iter().map(|w| w.work_code.clone()).collect());
+            }
+        })
+    };
+
+    let on_delete = {
+        let selected = selected.clone();
+        let works = works.clone();
+        Callback::from(move |_: MouseEvent| {
+            let to_delete: Vec<String> = (*selected).iter().cloned().collect();
+            let selected = selected.clone();
+            let works = works.clone();
+            spawn_local(async move {
+                match delete_works(to_delete).await {
+                    Ok(_) => {
+                        let remaining = (*works)
+                            .iter()
+                            .filter(|w| !(*selected).contains(&w.work_code))
+                            .cloned()
+                            .collect();
+                        works.set(remaining);
+                        selected.set(HashSet::new());
+                    }
+                    Err(_e) => {
+                        // TODO(@crhowell3): Add in proper error handling
+                    }
+                }
+            });
+        })
+    };
+
     html! {
         <div class="table-panel">
             <h3 class="panel-title">{"Work Records"}</h3>
 
             <button
                 class="btn btn-icon danger"
-                disabled=false
-                //onClick={() => setShowConfirm(true)}
+                disabled={ !some_checked }
+                onclick={ on_delete }
                 title="Delete selected"
                 aria-label="Delete selected"
             >
@@ -81,17 +158,41 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                 <table class="results-table">
                     <thead>
                         <tr>
+                        <th>
+                            <input
+                                type="checkbox"
+                                checked={ all_checked }
+                                onchange={ on_select_all }
+                            />
+                        </th>
                             <th>{ "Work Code" }</th>
                             <th>{ "Description" }</th>
                         </tr>
                     </thead>
                     <tbody>
-                        { for (*works).iter().map(|w| html! {
-                            <tr key={w.work_code.clone()}>
-                                <td>{ &w.work_code }</td>
-                                <td>{ &w.description }</td>
-                            </tr>
-                        })}
+                        { for (*works).iter().map(|w| {
+                            let work_code = w.work_code.clone();
+                            let is_checked = (*selected).contains(&w.work_code);
+                            let on_row_toggle = on_row_toggle.clone();
+
+                            html! {
+                                <tr key={w.work_code.clone()}>
+                                    <td>
+                                        <input
+                                            type="checkbox"
+                                            checked={ is_checked }
+                                            onchange={
+                                                Callback::from(move |_: Event| {
+                                                    on_row_toggle.emit(work_code.clone());
+                                                })
+                                            }
+                                        />
+                                    </td>
+                                    <td>{ &w.work_code }</td>
+                                    <td>{ &w.description }</td>
+                                </tr>
+                            }
+                        }) }
                     </tbody>
                 </table>
             }
