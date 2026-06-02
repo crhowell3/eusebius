@@ -110,7 +110,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                         works.set(remaining);
                         selected.set(HashSet::new());
                     }
-                    Err(e) => {
+                    Err(_e) => {
                         // TODO(@crhowell3): Add in proper error handling
                     }
                 }
