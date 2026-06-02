@@ -7,7 +7,7 @@ pub mod settings;
 pub mod works;
 
 pub use about::About;
-pub use baptisms::Baptisms;
+pub use baptisms::BaptismsTabBody;
 pub use deaths::Deaths;
 pub use main_menu::MainMenu;
 pub use members::MemberTabBody;
