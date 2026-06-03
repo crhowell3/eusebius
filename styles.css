@@ -615,6 +615,18 @@ body {
     border-color: var(--input-border-focus);
 }
 
+.form-input:invalid {
+    border-color: var(--color-danger);
+}
+
+.form-input:invalid + .form-label {
+    color: var(--color-danger);
+}
+
+.form:focus-within .form-input:invalid + .form-label {
+    color: var(--color-danger);
+}
+
 .form-label {
     position: absolute;
     top: -0.55rem;

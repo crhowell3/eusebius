@@ -23,6 +23,39 @@ async fn add_baptism(baptism: Baptism) -> Result<(), String> {
     }
 }
 
+fn is_valid_family_id(s: &str) -> bool {
+    s.len() == 4 && s.chars().all(|c| c.is_ascii_digit())
+}
+
+fn is_valid_date(s: &str) -> bool {
+    if s.len() != 10 {
+        return false;
+    }
+    let parts: Vec<&str> = s.split('-').collect();
+    if parts.len() != 3 {
+        return false;
+    }
+    let Ok(y) = parts[0].parse::<u32>() else {
+        return false;
+    };
+    let Ok(m) = parts[1].parse::<u32>() else {
+        return false;
+    };
+    let Ok(d) = parts[2].parse::<u32>() else {
+        return false;
+    };
+    y >= 1000 && (1..=12).contains(&m) && (1..=31).contains(&d)
+}
+
+fn is_valid_baptism(b: &Baptism) -> bool {
+    is_valid_family_id(&b.family_id)
+        && !b.first_name.trim().is_empty()
+        && !b.last_name.trim().is_empty()
+        && is_valid_date(&b.date_baptized)
+        && !b.witness.trim().is_empty()
+        && !b.location.trim().is_empty()
+}
+
 #[derive(Properties, PartialEq)]
 pub struct BaptismsFormProps {
     pub on_baptism_added: Callback<()>,
@@ -35,7 +68,7 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
 
     let handle_baptism_change = {
         let new_baptism = new_baptism.dispatcher();
-        Callback::from(move |e: Event| {
+        Callback::from(move |e: InputEvent| {
             let target = e.target().unwrap();
 
             let (name, value) = if let Ok(input) = target.clone().dyn_into::<HtmlInputElement>() {
@@ -72,7 +105,7 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
         })
     };
 
-    let is_valid = !new_baptism.family_id.is_empty();
+    let is_valid = is_valid_baptism(&*new_baptism);
 
     html! {
         <aside class="works-form-card">
@@ -105,15 +138,17 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
 
                 <div class="form">
                     <input
-                        type="number"
+                        type="text"
                         name="family_id"
                         class="form-input"
-                        placeholder=""
+                        placeholder="4-digit number"
+                        pattern=r"\d{4}"
                         autoComplete="off"
-                        min=1
-                        step=1
-                        value={(*new_baptism).clone().family_id}
-                        onchange={handle_baptism_change.clone()}
+                        minlength="4"
+                        maxlength="4"
+                        inputmode="numeric"
+                        value={ new_baptism.family_id.clone() }
+                        oninput={ handle_baptism_change.clone() }
                     />
                     <label htmlFor="family_id" class="form-label">
                         {"Family ID"}
@@ -126,9 +161,9 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
                         name="first_name"
                         autoComplete="off"
                         class="form-input"
-                        placeholder=""
-                        value={(*new_baptism).clone().first_name}
-                        onchange={handle_baptism_change.clone()}
+                        placeholder=" "
+                        value={ new_baptism.first_name.clone() }
+                        oninput={ handle_baptism_change.clone() }
                     />
                     <label htmlFor="first_name" class="form-label">
                         {"First Name"}
@@ -141,9 +176,9 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
                         name="last_name"
                         autoComplete="off"
                         class="form-input"
-                        placeholder=""
-                        value={(*new_baptism).clone().last_name}
-                        onchange={handle_baptism_change.clone()}
+                        placeholder=" "
+                        value={ new_baptism.last_name.clone() }
+                        oninput={ handle_baptism_change.clone() }
                     />
                     <label htmlFor="last_name" class="form-label">
                         {"Last Name"}
@@ -152,12 +187,13 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
 
                 <div class="form">
                     <input
-                        type="date"
+                        type="text"
                         name="date_baptized"
                         class="form-input"
-                        placeholder=""
-                        value={(*new_baptism).clone().date_baptized}
-                        onchange={handle_baptism_change.clone()}
+                        placeholder="YYYY-MM-DD"
+                        pattern=r"\d{4}-\d{2}-\d{2}"
+                        value={ new_baptism.date_baptized.clone() }
+                        oninput={ handle_baptism_change.clone() }
                     />
                     <label htmlFor="date_baptized" class="form-label">
                         {"Date"}
@@ -169,9 +205,9 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
                         type="text"
                         name="witness"
                         class="form-input"
-                        placeholder=""
-                        value={(*new_baptism).clone().witness}
-                        onchange={handle_baptism_change.clone()}
+                        placeholder=" "
+                        value={ new_baptism.witness.clone()}
+                        oninput={ handle_baptism_change.clone() }
                     />
                     <label htmlFor="witness" class="form-label">
                         {"Witness"}
@@ -183,9 +219,9 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
                         type="text"
                         name="location"
                         class="form-input"
-                        placeholder=""
-                        value={(*new_baptism).clone().location}
-                        onchange={handle_baptism_change.clone()}
+                        placeholder=" "
+                        value={ new_baptism.location.clone() }
+                        oninput={ handle_baptism_change.clone() }
                     />
                     <label htmlFor="location" class="form-label">
                         {"Location"}
@@ -196,7 +232,7 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
             <div class="works-form-footer">
                 <button
                     class="btn btn-primary works-form-submit"
-                    onclick={handle_submit}
+                    onclick={ handle_submit }
                     disabled={ !is_valid }
                 >
                     { "Add Baptism" }

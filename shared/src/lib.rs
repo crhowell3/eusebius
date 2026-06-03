@@ -40,7 +40,11 @@ impl Default for Work {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Default)]
+fn today_string() -> String {
+    chrono::Local::now().format("%Y-%m-%d").to_string()
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Baptism {
     pub family_id: String,
@@ -49,6 +53,19 @@ pub struct Baptism {
     pub date_baptized: String,
     pub witness: String,
     pub location: String,
+}
+
+impl Default for Baptism {
+    fn default() -> Self {
+        Self {
+            family_id: String::new(),
+            last_name: String::new(),
+            first_name: String::new(),
+            date_baptized: today_string(),
+            witness: String::new(),
+            location: String::new(),
+        }
+    }
 }
 
 impl yew::prelude::Reducible for Baptism {
