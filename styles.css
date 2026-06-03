@@ -804,7 +804,9 @@ body {
 
 .about-panel {
     background: var(--bg-surface);
-    border-radius: 10px;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-md);
     width: 600px;
     padding: 28px 24px 0 24px;
     display: flex;
@@ -859,6 +861,7 @@ body {
     font-size: 14px;
     font-weight: var(--weight-regular);
     padding: 14px 0;
+    color: var(--text-primary);
     cursor: pointer;
     font-family: inherit;
     transition: background 0.12s;
@@ -979,6 +982,40 @@ body {
     flex-direction: column;
     overflow: hidden;
     min-height: 320px;
+}
+
+/* ── Toast ── */
+
+.toast {
+    position: fixed;
+    bottom: var(--space-6);
+    left: 50%;
+    transform: translateX(-50%) translateY(calc(100% + var(--space-6)));
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-gray-900);
+    color: var(--color-white);
+    font-size: var(--text-sm);
+    border-radius: var(--border-radius-full);
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transition:
+        opacity var(--transition-base),
+        transform var(--transition-base);
+    pointer-events: none;
+    z-index: var(--z-toast);
+}
+
+.toast--visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+[data-theme="dark"] .toast {
+    background: var(--color-gray-100);
+    color: var(--color-gray-900);
 }
 
 /* ── Toolbar ── */
