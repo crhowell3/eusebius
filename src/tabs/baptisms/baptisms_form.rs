@@ -120,36 +120,34 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
                     </label>
                 </div>
 
-                <div style="">
-                    <div class="form">
-                        <input
-                            type="text"
-                            name="first_name"
-                            autoComplete="off"
-                            class="form-input"
-                            placeholder=""
-                            value={(*new_baptism).clone().first_name}
-                            onchange={handle_baptism_change.clone()}
-                        />
-                        <label htmlFor="first_name" class="form-label">
-                            {"First Name"}
-                        </label>
-                    </div>
+                <div class="form">
+                    <input
+                        type="text"
+                        name="first_name"
+                        autoComplete="off"
+                        class="form-input"
+                        placeholder=""
+                        value={(*new_baptism).clone().first_name}
+                        onchange={handle_baptism_change.clone()}
+                    />
+                    <label htmlFor="first_name" class="form-label">
+                        {"First Name"}
+                    </label>
+                </div>
 
-                    <div class="form">
-                        <input
-                            type="text"
-                            name="last_name"
-                            autoComplete="off"
-                            class="form-input"
-                            placeholder=""
-                            value={(*new_baptism).clone().last_name}
-                            onchange={handle_baptism_change.clone()}
-                        />
-                        <label htmlFor="last_name" class="form-label">
-                            {"Last Name"}
-                        </label>
-                    </div>
+                <div class="form">
+                    <input
+                        type="text"
+                        name="last_name"
+                        autoComplete="off"
+                        class="form-input"
+                        placeholder=""
+                        value={(*new_baptism).clone().last_name}
+                        onchange={handle_baptism_change.clone()}
+                    />
+                    <label htmlFor="last_name" class="form-label">
+                        {"Last Name"}
+                    </label>
                 </div>
 
                 <div class="form">

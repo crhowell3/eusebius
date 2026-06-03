@@ -4,6 +4,7 @@ pub mod baptisms_form;
 pub mod baptisms_table;
 
 use baptisms_form::BaptismsForm;
+use baptisms_table::BaptismsTable;
 
 #[function_component(BaptismsTabBody)]
 pub fn baptisms_tab_body() -> Html {
@@ -19,6 +20,7 @@ pub fn baptisms_tab_body() -> Html {
     html! {
         <div class="works-layout">
             <BaptismsForm on_baptism_added={ on_baptism_added } />
+            <BaptismsTable refresh_trigger={ *refresh_trigger } />
         </div>
     }
 }

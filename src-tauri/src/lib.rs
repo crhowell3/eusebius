@@ -101,6 +101,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             add_child,
             add_spouse,
+            add_baptism,
+            get_baptisms,
+            delete_baptisms,
             delete_works,
             get_children,
             get_families,
