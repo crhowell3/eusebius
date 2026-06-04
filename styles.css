@@ -633,7 +633,7 @@ body {
     left: 0.65rem;
     padding: 0 0.25rem;
     font-size: 0.75rem;
-    background-color: var(--bg-page);
+    background-color: var(--bg-surface);
     color: var(--text-primary);
     pointer-events: none;
     transition: color 0.2s;
