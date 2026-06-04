@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::window;
 use yew::prelude::*;
 
-use crate::tabs::{About, Baptisms, Deaths, MainMenu, MemberTabBody, Settings, WorkTabBody};
+use crate::tabs::{About, BaptismsTabBody, Deaths, MainMenu, MemberTabBody, Settings, WorkTabBody};
 
 const COMMIT: &str = env!("GIT_COMMIT_HASH");
 
@@ -43,7 +43,7 @@ fn tab_content(id: &str, _label: &str) -> Html {
         "update-members" => html! { <MemberTabBody /> },
         "update-works" => html! { <WorkTabBody /> },
         "update-deaths" => html! { <Deaths /> },
-        "update-baptisms" => html! { <Baptisms /> },
+        "update-baptisms" => html! { <BaptismsTabBody /> },
         "settings" => html! { <Settings /> },
         "about" => html! { <About version={env!("CARGO_PKG_VERSION")} commit={COMMIT} /> },
         _ => html! {},

@@ -1,15 +1,15 @@
 use serde::{Deserialize, Serialize};
 
+pub enum GenericAction {
+    SetField { name: String, value: String },
+    Reset,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Work {
     pub work_code: String,
     pub description: String,
-}
-
-pub enum GenericAction {
-    SetField { name: String, value: String },
-    Reset,
 }
 
 impl yew::prelude::Reducible for Work {
@@ -36,6 +36,57 @@ impl Default for Work {
         Self {
             work_code: String::new(),
             description: String::new(),
+        }
+    }
+}
+
+fn today_string() -> String {
+    chrono::Local::now().format("%Y-%m-%d").to_string()
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
+pub struct Baptism {
+    pub family_id: String,
+    pub last_name: String,
+    pub first_name: String,
+    pub date_baptized: String,
+    pub witness: String,
+    pub location: String,
+}
+
+impl Default for Baptism {
+    fn default() -> Self {
+        Self {
+            family_id: String::new(),
+            last_name: String::new(),
+            first_name: String::new(),
+            date_baptized: today_string(),
+            witness: String::new(),
+            location: String::new(),
+        }
+    }
+}
+
+impl yew::prelude::Reducible for Baptism {
+    type Action = GenericAction;
+
+    fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
+        match action {
+            GenericAction::SetField { name, value } => {
+                let mut updated = (*self).clone();
+                match name.as_str() {
+                    "family_id" => updated.family_id = value,
+                    "last_name" => updated.last_name = value,
+                    "first_name" => updated.first_name = value,
+                    "date_baptized" => updated.date_baptized = value,
+                    "witness" => updated.witness = value,
+                    "location" => updated.location = value,
+                    _ => {}
+                }
+                std::rc::Rc::new(updated)
+            }
+            GenericAction::Reset => std::rc::Rc::new(Baptism::default()),
         }
     }
 }
