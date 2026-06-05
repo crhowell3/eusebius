@@ -111,6 +111,7 @@ pub fn run() {
             get_works,
             add_work,
             exit_app,
+            list_tables,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

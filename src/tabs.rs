@@ -4,6 +4,7 @@ pub mod deaths;
 pub mod main_menu;
 pub mod members;
 pub mod settings;
+pub mod view_tables;
 pub mod works;
 
 pub use about::About;
@@ -12,4 +13,5 @@ pub use deaths::Deaths;
 pub use main_menu::MainMenu;
 pub use members::MemberTabBody;
 pub use settings::Settings;
+pub use view_tables::ViewTables;
 pub use works::WorkTabBody;
