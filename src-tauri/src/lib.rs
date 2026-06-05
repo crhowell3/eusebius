@@ -17,9 +17,24 @@ const BAPTISMS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS baptisms (
 )";
 
 const FAMILIES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS families (
-    family_id       TEXT PRIMARY KEY NOT NULL,
-    first_name      TEXT NOT NULL,
-    last_name       TEXT NOT NULL
+    family_id               TEXT PRIMARY KEY NOT NULL,
+    mail_route              TEXT NOT NULL,
+    first_name              TEXT NOT NULL,
+    last_name               TEXT NOT NULL,
+    is_member               INTEGER NOT NULL DEFAULT 0,
+    is_active               INTEGER NOT NULL DEFAULT 0,
+    date_of_birth           TEXT NOT NULL,
+    anniversary_month       TEXT NOT NULL,
+    anniversary_day         TEXT NOT NULL,
+    home_phone              TEXT NOT NULL,
+    cell_phone              TEXT NOT NULL,
+    work_phone              TEXT NOT NULL,
+    address                 TEXT NOT NULL,
+    city                    TEXT NOT NULL,
+    state                   TEXT NOT NULL,
+    zip                     TEXT NOT NULL,
+    email_address           TEXT NOT NULL,
+    on_bulletin_email_list  INTEGER NOT NULL DEFAULT 0
 )";
 
 const SPOUSES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS spouses (
@@ -102,8 +117,10 @@ pub fn run() {
             add_child,
             add_spouse,
             add_baptism,
+            add_family,
             get_baptisms,
             delete_baptisms,
+            delete_families,
             delete_works,
             get_children,
             get_families,

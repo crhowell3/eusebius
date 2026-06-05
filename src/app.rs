@@ -40,8 +40,18 @@ fn apply_theme(dark: bool) {
     }
 }
 
-fn tab_content(id: &str, _label: &str) -> Html {
-    match id {
+#[derive(Properties, PartialEq)]
+struct TabPaneProps {
+    pub id: AttrValue,
+    pub active_id: AttrValue,
+}
+
+// This component only re-renders when its own id or the active tab changes
+// — not when the form state changes
+#[function_component(TabPane)]
+fn tab_pane(props: &TabPaneProps) -> Html {
+    let visible = props.id == props.active_id;
+    let content = match props.id.as_str() {
         "update-members" => html! { <MemberTabBody /> },
         "update-works" => html! { <WorkTabBody /> },
         "update-deaths" => html! { <Deaths /> },
@@ -50,6 +60,12 @@ fn tab_content(id: &str, _label: &str) -> Html {
         "settings" => html! { <Settings /> },
         "about" => html! { <About version={env!("CARGO_PKG_VERSION")} commit={COMMIT} /> },
         _ => html! {},
+    };
+
+    html! {
+        <div class={ if visible { "tab-content tab-content--active" } else { "tab-content" } }>
+            { content }
+        </div>
     }
 }
 
@@ -181,14 +197,12 @@ pub fn app() -> Html {
 
                 {
                     for (*tabs).iter().filter(|t| t.id != "main").map(|tab| {
-                        let visible = tab.id == active;
                         html! {
-                            <div
+                            <TabPane
                                 key={ tab.id.clone() }
-                                class={ if visible { "tab-content tab-content--active" } else { "tab-content" } }
-                            >
-                                { tab_content(&tab.id, &tab.label) }
-                            </div>
+                                id={ tab.id.clone() }
+                                active_id={ (*active_tab).clone() }
+                            />
                         }
                     })
                 }

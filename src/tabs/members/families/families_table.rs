@@ -38,9 +38,14 @@ async fn delete_families(family_ids: Vec<String>) -> Result<(), String> {
 #[derive(Clone, PartialEq)]
 enum SortColumn {
     FamilyId,
-    MailCode,
+    MailRoute,
     LastName,
     FirstName,
+    DateOfBirth,
+    AnniversaryMonth,
+    AnniversaryDay,
+    City,
+    State,
 }
 
 #[derive(Clone, PartialEq)]
@@ -86,9 +91,14 @@ fn sort_families(families: &[Family], sort: &SortState) -> Vec<Family> {
     sorted.sort_by(|a, b| {
         let ord = match sort.column {
             SortColumn::FamilyId => a.family_id.cmp(&b.family_id),
-            SortColumn::MailCode => a.mail_route.cmp(&b.mail_route),
+            SortColumn::MailRoute => a.mail_route.cmp(&b.mail_route),
             SortColumn::LastName => a.last_name.cmp(&b.last_name),
             SortColumn::FirstName => a.first_name.cmp(&b.first_name),
+            SortColumn::DateOfBirth => a.date_of_birth.cmp(&b.date_of_birth),
+            SortColumn::AnniversaryMonth => a.anniversary_month.cmp(&b.anniversary_month),
+            SortColumn::AnniversaryDay => a.anniversary_day.cmp(&b.anniversary_day),
+            SortColumn::City => a.city.cmp(&b.city),
+            SortColumn::State => a.state.cmp(&b.state),
         };
         match sort.dir {
             SortDir::Asc => ord,
@@ -127,6 +137,18 @@ fn sort_icon(active: bool, dir: &SortDir) -> Html {
                 <path d="M7 9l5-5 5 5"/>
             </svg>
         },
+    }
+}
+
+fn bool_cell(value: bool) -> Html {
+    if value {
+        html! {
+            <span class="family-badge family-badge--yes">{ "Yes" }</span>
+        }
+    } else {
+        html! {
+            <span class="family-badge family-badge--no">{ "No" }</span>
+        }
     }
 }
 
@@ -170,15 +192,22 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
     let some_checked = !(*selected).is_empty();
     let selected_count = (*selected).len();
 
-    let on_sort_family_id = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::FamilyId)))
-    };
+    macro_rules! on_sort {
+        ($col:expr) => {{
+            let sort = sort.clone();
+            Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle($col)))
+        }};
+    }
 
-    let on_sort_mail_route = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::MailCode)))
-    };
+    let on_sort_family_id = on_sort!(SortColumn::FamilyId);
+    let on_sort_mail_route = on_sort!(SortColumn::MailRoute);
+    let on_sort_last_name = on_sort!(SortColumn::LastName);
+    let on_sort_first_name = on_sort!(SortColumn::FirstName);
+    let on_sort_date_of_birth = on_sort!(SortColumn::DateOfBirth);
+    let on_sort_ann_month = on_sort!(SortColumn::AnniversaryMonth);
+    let on_sort_ann_day = on_sort!(SortColumn::AnniversaryDay);
+    let on_sort_city = on_sort!(SortColumn::City);
+    let on_sort_state = on_sort!(SortColumn::State);
 
     let on_row_toggle = {
         let selected = selected.clone();
@@ -243,7 +272,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
         <section class="works-table-card">
             <div class="works-table-toolbar">
                 <div class="works-table-toolbar-left">
-                    <h3 class="works-table-title">{" Family Records "}</h3>
+                    <h3 class="works-table-title">{ "Family Records" }</h3>
                     if !sorted_families.is_empty() {
                         <span class="works-table-count">
                             { format!("{} record{}", sorted_families.len(),
@@ -301,11 +330,27 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                         <span class="works-table-empty-sub">{ "Add a record using the form" }</span>
                     </div>
                 } else {
-                    <table class="works-table">
+                    <table class="family-table">
                         <colgroup>
-                            <col class="works-col-check" />
-                            <col class="works-col-code" />
-                            <col class="works-col-description" />
+                            <col style="width: 44px" />
+                            <col style="width: 90px" />
+                            <col style="width: 90px" />
+                            <col style="width: 130px" />
+                            <col style="width: 130px" />
+                            <col style="width: 60px" />
+                            <col style="width: 60px" />
+                            <col style="width: 110px" />
+                            <col style="width: 100px" />
+                            <col style="width: 70px" />
+                            <col style="width: 120px" />
+                            <col style="width: 120px" />
+                            <col style="width: 120px" />
+                            <col style="width: 180px" />
+                            <col style="width: 110px" />
+                            <col style="width: 60px" />
+                            <col style="width: 70px" />
+                            <col style="width: 180px" />
+                            <col style="width: 80px" />
                         </colgroup>
                         <thead>
                             <tr>
@@ -327,15 +372,94 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     </span>
                                 </th>
                                 <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_mail_route }>
+                                    onclick={ on_sort_mail_route.clone() }>
                                     <span class="works-table-th-inner">
                                         { "Mail Route" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::MailCode,
+                                            (*sort).column == SortColumn::MailRoute,
                                             &(*sort).dir
                                         ) }
                                     </span>
                                 </th>
+                                <th class="works-table-th works-table-th--sortable"
+                                    onclick={ on_sort_mail_route.clone() }>
+                                    <span class="works-table-th-inner">
+                                        { "Last Name" }
+                                        { sort_icon(
+                                            (*sort).column == SortColumn::LastName,
+                                            &(*sort).dir
+                                        ) }
+                                    </span>
+                                </th>
+                                <th class="works-table-th works-table-th--sortable"
+                                    onclick={ on_sort_mail_route.clone() }>
+                                    <span class="works-table-th-inner">
+                                        { "First Name" }
+                                        { sort_icon(
+                                            (*sort).column == SortColumn::FirstName,
+                                            &(*sort).dir
+                                        ) }
+                                    </span>
+                                </th>
+                                <th class="works-table-th">{ "Mbr?" }</th>
+                                <th class="works-table-th">{ "Active?" }</th>
+                                <th class="works-table-th works-table-th--sortable"
+                                    onclick={ on_sort_mail_route.clone() }>
+                                    <span class="works-table-th-inner">
+                                        { "DOB" }
+                                        { sort_icon(
+                                            (*sort).column == SortColumn::DateOfBirth,
+                                            &(*sort).dir
+                                        ) }
+                                    </span>
+                                </th>
+                                <th class="works-table-th works-table-th--sortable"
+                                    onclick={ on_sort_mail_route.clone() }>
+                                    <span class="works-table-th-inner">
+                                        { "Ann. Month" }
+                                        { sort_icon(
+                                            (*sort).column == SortColumn::AnniversaryMonth,
+                                            &(*sort).dir
+                                        ) }
+                                    </span>
+                                </th>
+                                <th class="works-table-th works-table-th--sortable"
+                                    onclick={ on_sort_mail_route.clone() }>
+                                    <span class="works-table-th-inner">
+                                        { "Ann. Day" }
+                                        { sort_icon(
+                                            (*sort).column == SortColumn::AnniversaryDay,
+                                            &(*sort).dir
+                                        ) }
+                                    </span>
+                                </th>
+                                <th class="works-table-th">{ "Home Ph." }</th>
+                                <th class="works-table-th">{ "Cell Ph." }</th>
+                                <th class="works-table-th">{ "Work Ph." }</th>
+                                <th class="works-table-th">{ "Address" }</th>
+                                <th class="works-table-th works-table-th--sortable"
+                                    onclick={ on_sort_mail_route.clone() }>
+                                    <span class="works-table-th-inner">
+                                        { "City" }
+                                        { sort_icon(
+                                            (*sort).column == SortColumn::City,
+                                            &(*sort).dir
+                                        ) }
+                                    </span>
+                                </th>
+                                <th class="works-table-th works-table-th--sortable"
+                                    onclick={ on_sort_mail_route.clone() }>
+                                    <span class="works-table-th-inner">
+                                        { "State" }
+                                        { sort_icon(
+                                            (*sort).column == SortColumn::State,
+                                            &(*sort).dir
+                                        ) }
+                                    </span>
+                                </th>
+                                <th class="works-table-th">{ "ZIP" }</th>
+                                <th class="works-table-th">{ "Email" }</th>
+                                <th class="works-table-th">{ "Bulletin?" }</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -367,7 +491,23 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                                 { &m.family_id }
                                             </span>
                                         </td>
-                                        <td class="works-table-td">{ &m.mail_route }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.mail_route }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.last_name }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.first_name }</td>
+                                        <td class="works-table-td">{ bool_cell(m.is_member) }</td>
+                                        <td class="works-table-td">{ bool_cell(m.is_active) }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.date_of_birth }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.anniversary_month }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.anniversary_day }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.home_phone }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.cell_phone }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.work_phone }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.address }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.city }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.state }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.zip }</td>
+                                        <td class="works-table-td family-td-clip">{ &m.email_address }</td>
+                                        <td class="works-table-td">{ bool_cell(m.on_bulletin_email_list) }</td>
                                     </tr>
                                 }
                             }) }
