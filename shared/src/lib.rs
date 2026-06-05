@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 pub enum GenericAction {
     SetField { name: String, value: String },
+    SetBool { name: String, value: bool },
     Reset,
 }
 
@@ -33,6 +34,13 @@ impl yew::prelude::Reducible for Work {
                 std::rc::Rc::new(updated)
             }
             GenericAction::Reset => std::rc::Rc::new(Work::default()),
+            GenericAction::SetBool { name, value } => {
+                let mut updated = (*self).clone();
+                match name.as_str() {
+                    _ => {}
+                }
+                std::rc::Rc::new(updated)
+            }
         }
     }
 }
@@ -93,6 +101,13 @@ impl yew::prelude::Reducible for Baptism {
                 std::rc::Rc::new(updated)
             }
             GenericAction::Reset => std::rc::Rc::new(Baptism::default()),
+            GenericAction::SetBool { name, value } => {
+                let mut updated = (*self).clone();
+                match name.as_str() {
+                    _ => {}
+                }
+                std::rc::Rc::new(updated)
+            }
         }
     }
 }
@@ -166,8 +181,6 @@ impl yew::prelude::Reducible for Family {
                     "mail_route" => updated.mail_route = value,
                     "last_name" => updated.last_name = value,
                     "first_name" => updated.first_name = value,
-                    //"is_member" => updated.is_member = value,
-                    //"is_active" => updated.is_active = value,
                     "date_of_birth" => updated.date_of_birth = value,
                     "anniversary_month" => updated.anniversary_month = value,
                     "anniversary_day" => updated.anniversary_day = value,
@@ -179,7 +192,16 @@ impl yew::prelude::Reducible for Family {
                     "state" => updated.state = value,
                     "zip" => updated.zip = value,
                     "email_address" => updated.email_address = value,
-                    //"on_bulletin_email_list" => updated.on_bulletin_email_list = value,
+                    _ => {}
+                }
+                std::rc::Rc::new(updated)
+            }
+            GenericAction::SetBool { name, value } => {
+                let mut updated = (*self).clone();
+                match name.as_str() {
+                    "is_member" => updated.is_member = value,
+                    "is_active" => updated.is_active = value,
+                    "on_bulletin_email_list" => updated.on_bulletin_email_list = value,
                     _ => {}
                 }
                 std::rc::Rc::new(updated)
