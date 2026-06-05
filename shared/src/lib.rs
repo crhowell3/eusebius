@@ -33,14 +33,11 @@ impl yew::prelude::Reducible for Work {
                 }
                 std::rc::Rc::new(updated)
             }
-            GenericAction::Reset => std::rc::Rc::new(Work::default()),
-            GenericAction::SetBool { name, value } => {
-                let mut updated = (*self).clone();
-                match name.as_str() {
-                    _ => {}
-                }
+            GenericAction::SetBool { name: _, value: _ } => {
+                let updated = (*self).clone();
                 std::rc::Rc::new(updated)
             }
+            GenericAction::Reset => std::rc::Rc::new(Work::default()),
         }
     }
 }
@@ -100,14 +97,11 @@ impl yew::prelude::Reducible for Baptism {
                 }
                 std::rc::Rc::new(updated)
             }
-            GenericAction::Reset => std::rc::Rc::new(Baptism::default()),
-            GenericAction::SetBool { name, value } => {
-                let mut updated = (*self).clone();
-                match name.as_str() {
-                    _ => {}
-                }
+            GenericAction::SetBool { name: _, value: _ } => {
+                let updated = (*self).clone();
                 std::rc::Rc::new(updated)
             }
+            GenericAction::Reset => std::rc::Rc::new(Baptism::default()),
         }
     }
 }

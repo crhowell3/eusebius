@@ -372,7 +372,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     </span>
                                 </th>
                                 <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_mail_route.clone() }>
+                                    onclick={ on_sort_mail_route }>
                                     <span class="works-table-th-inner">
                                         { "Mail Route" }
                                         { sort_icon(
@@ -382,7 +382,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     </span>
                                 </th>
                                 <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_mail_route.clone() }>
+                                    onclick={ on_sort_last_name }>
                                     <span class="works-table-th-inner">
                                         { "Last Name" }
                                         { sort_icon(
@@ -392,7 +392,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     </span>
                                 </th>
                                 <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_mail_route.clone() }>
+                                    onclick={ on_sort_first_name }>
                                     <span class="works-table-th-inner">
                                         { "First Name" }
                                         { sort_icon(
@@ -404,7 +404,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                 <th class="works-table-th">{ "Mbr?" }</th>
                                 <th class="works-table-th">{ "Active?" }</th>
                                 <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_mail_route.clone() }>
+                                    onclick={ on_sort_date_of_birth }>
                                     <span class="works-table-th-inner">
                                         { "DOB" }
                                         { sort_icon(
@@ -414,7 +414,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     </span>
                                 </th>
                                 <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_mail_route.clone() }>
+                                    onclick={ on_sort_ann_month }>
                                     <span class="works-table-th-inner">
                                         { "Ann. Month" }
                                         { sort_icon(
@@ -424,7 +424,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     </span>
                                 </th>
                                 <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_mail_route.clone() }>
+                                    onclick={ on_sort_ann_day }>
                                     <span class="works-table-th-inner">
                                         { "Ann. Day" }
                                         { sort_icon(
@@ -438,7 +438,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                 <th class="works-table-th">{ "Work Ph." }</th>
                                 <th class="works-table-th">{ "Address" }</th>
                                 <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_mail_route.clone() }>
+                                    onclick={ on_sort_city }>
                                     <span class="works-table-th-inner">
                                         { "City" }
                                         { sort_icon(
@@ -448,7 +448,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     </span>
                                 </th>
                                 <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_mail_route.clone() }>
+                                    onclick={ on_sort_state }>
                                     <span class="works-table-th-inner">
                                         { "State" }
                                         { sort_icon(

@@ -1,3 +1,6 @@
+/* =========================================================
+    ROOT CONFIGURATION
+   ========================================================= */
 :root {
     /* ── Colors ── */
     --color-white: #ffffff;
@@ -172,6 +175,10 @@
     --z-toast: 500;
 }
 
+/* =========================================================
+    DARK THEME
+   ========================================================= */
+
 [data-theme="dark"] {
     --bg-page: #111110;
     --bg-surface: #1a1a18;
@@ -222,7 +229,10 @@ body {
     background: var(--bg-page);
 }
 
-/* Buttons */
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
 .btn {
     display: inline-flex;
     align-items: center;
@@ -243,6 +253,7 @@ body {
         border-color var(--transition-fast),
         color var(--transition-fast);
 }
+
 .btn:focus-visible {
     outline: none;
     box-shadow: var(--shadow-focus);
@@ -323,7 +334,9 @@ body {
     font-size: var(--text-base);
 }
 
-/* ── Theme Toggle ── */
+/* =========================================================
+   THEME TOGGLE
+   ========================================================= */
 .theme-toggle {
     margin-left: auto;
     height: var(--btn-height-sm);
@@ -480,7 +493,9 @@ body {
     padding: var(--space-12);
 }
 
-/* ── Menu Panel ── */
+/* =========================================================
+   MENU
+   ========================================================= */
 .menu-panel {
     width: 55%;
     background: var(--bg-surface);
@@ -801,36 +816,9 @@ body {
     display: block;
 }
 
-.results-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--bg-page);
-}
-
-.results-table th,
-.results-table td {
-    padding: 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border-light);
-}
-
-.results-table th {
-    background: var(--bg-surface);
-    position: sticky;
-    top: 0;
-    font-weight: 600;
-}
-
-.results-table tr:hover {
-    background: var(--row-hover);
-}
-
-.text-error {
-    color: red;
-}
-.text-muted {
-    color: gray;
-}
+/* =========================================================
+   ABOUT TAB
+   ========================================================= */
 
 .about-panel {
     background: var(--bg-surface);
@@ -1123,7 +1111,9 @@ body {
     min-height: 320px;
 }
 
-/* ── Toast ── */
+/* =========================================================
+   TOAST
+   ========================================================= */
 
 .toast {
     position: fixed;
@@ -1537,10 +1527,6 @@ body {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-5) var(--space-6);
     padding: var(--space-6);
-}
-
-.member-form-field {
-    /* each field occupies one grid cell by default */
 }
 
 .member-form-full {
