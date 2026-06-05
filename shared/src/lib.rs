@@ -5,6 +5,12 @@ pub enum GenericAction {
     Reset,
 }
 
+#[derive(Deserialize, Serialize, Clone, PartialEq)]
+pub struct TableInfo {
+    pub name: String,
+    pub path: String,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Work {

@@ -1,9 +1,37 @@
 use sqlx::{QueryBuilder, SqlitePool};
 use tauri::State;
 
-use shared::{Baptism, Child, Family, Spouse, Work};
+use shared::{Baptism, Child, Family, Spouse, TableInfo, Work};
 
 pub struct DbState(pub SqlitePool);
+
+//
+// Generic Database Commands
+//
+
+#[tauri::command]
+pub async fn list_tables(db: State<'_, DbState>) -> Result<Vec<TableInfo>, String> {
+    let path =
+        db.0.connect_options()
+            .get_filename()
+            .to_string_lossy()
+            .to_string();
+
+    let tables =
+        sqlx::query_scalar!("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+            .fetch_all(&db.0)
+            .await
+            .map_err(|e| e.to_string())?;
+
+    Ok(tables
+        .into_iter()
+        .flatten()
+        .map(|name| TableInfo {
+            name,
+            path: path.clone(),
+        })
+        .collect())
+}
 
 //
 // `Baptism` Commands
