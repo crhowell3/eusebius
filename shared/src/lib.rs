@@ -126,11 +126,52 @@ pub struct Spouse {
     pub family_id: String,
     pub first_name: String,
     pub last_name: String,
+    pub date_of_birth: String,
+    pub is_member: bool,
+    pub is_active: bool,
+    pub cell_phone: String,
+    pub work_phone: String,
+    pub email_address: String,
+    pub on_bulletin_email_list: bool,
 }
 
 impl Spouse {
     pub fn new() -> Self {
         Self::default()
+    }
+}
+
+impl yew::prelude::Reducible for Spouse {
+    type Action = GenericAction;
+
+    fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
+        match action {
+            GenericAction::SetField { name, value } => {
+                let mut updated = (*self).clone();
+                match name.as_str() {
+                    "family_id" => updated.family_id = value,
+                    "last_name" => updated.last_name = value,
+                    "first_name" => updated.first_name = value,
+                    "date_of_birth" => updated.date_of_birth = value,
+                    "cell_phone" => updated.cell_phone = value,
+                    "work_phone" => updated.work_phone = value,
+                    "email_address" => updated.email_address = value,
+                    _ => {}
+                }
+                std::rc::Rc::new(updated)
+            }
+            GenericAction::SetBool { name, value } => {
+                let mut updated = (*self).clone();
+                match name.as_str() {
+                    "is_member" => updated.is_member = value,
+                    "is_active" => updated.is_active = value,
+                    "on_bulletin_email_list" => updated.on_bulletin_email_list = value,
+                    _ => {}
+                }
+                std::rc::Rc::new(updated)
+            }
+            GenericAction::Reset => std::rc::Rc::new(Spouse::default()),
+        }
     }
 }
 

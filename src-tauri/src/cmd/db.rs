@@ -248,7 +248,7 @@ pub async fn delete_families(
         return Ok(());
     }
 
-    let mut builder = QueryBuilder::new("DELETE FROM families WHERE family_ids IN (");
+    let mut builder = QueryBuilder::new("DELETE FROM families WHERE family_id IN (");
 
     let mut separated = builder.separated(", ");
     for id in &family_ids {

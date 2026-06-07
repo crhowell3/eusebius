@@ -3,22 +3,17 @@ use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
-use shared::Spouse;
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
-    async fn invoke(cmd: &str, args: JsValue) -> JsValue;
-}
+use crate::utils::invoke;
+use shared::{GenericAction, Spouse};
 
 #[function_component(Spouses)]
 pub fn spouses() -> Html {
-    let _form_error = use_state(|| String::new());
-    let new_spouse = use_state(|| Spouse::new());
+    let form_error = use_state(|| None::<String>);
+    let spouse = use_reducer(Spouse::default);
 
     let handle_spouse_change = {
-        let new_spouse = new_spouse.clone();
-        Callback::from(move |e: Event| {
+        let spouse = spouse.dispatcher();
+        Callback::from(move |e: InputEvent| {
             let target = e.target().unwrap();
 
             let (name, value) = if let Ok(input) = target.clone().dyn_into::<HtmlInputElement>() {
@@ -29,46 +24,148 @@ pub fn spouses() -> Html {
                 return;
             };
 
-            let mut updated = (*new_spouse).clone();
-
-            match name.as_str() {
-                "family_id" => updated.family_id = value,
-                _ => {}
-            }
-            new_spouse.set(updated);
+            spouse.dispatch(GenericAction::SetField { name, value });
         })
     };
 
     html! {
-        <div>
-            <hr style="margin: 1rem 0; width: 100%" />
+        <div class="member-layout">
+            <aside class="member-form-card">
+                <div class="works-form-header">
+                    <h3 class="works-form-title">{ "Spouse Information" }</h3>
+                </div>
 
-            <h3 style="margin-bottom: 1rem">{"Add Spouse"}</h3>
+                <div class="member-form-body">
+                    if let Some(err) = (*form_error).as_deref() {
+                        <div class="works-form-error member-form-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            { err }
+                        </div>
+                    }
 
-            <div class="form">
-                <input
-                    type="number"
-                    name="family_id"
-                    class="form-input"
-                    placeholder=""
-                    autoComplete="off"
-                    min=1
-                    step=1
-                    value={(*new_spouse).clone().family_id}
-                    onchange={handle_spouse_change.clone()}
-                />
-                <label htmlFor="family_id" class="form-label">
-                    {"Family ID"}
-                </label>
-            </div>
+                    <div class="member-form-section-label member-form-full">{ "Identity" }</div>
 
-            <button
-                class="btn btn-primary"
-                //onclick={add_baptism}
-                //disabled={new_baptism.family_id.is_empty() || new_baptism.last_name.is_empty()}
-            >
-                {"Add Spouse"}
-            </button>
+                    <div class="form member-form-field">
+                        <input type="text" name="first_name" class="form-input"
+                            placeholder=" " autocomplete="off"
+                            value={ spouse.first_name.clone() }
+                            oninput={ handle_spouse_change.clone() } />
+                        <label for="first_name" class="form-label">{ "First Name" }</label>
+                    </div>
+
+                    <div class="form member-form-field">
+                        <input type="text" name="last_name" class="form-input"
+                            placeholder=" " autocomplete="off"
+                            value={ spouse.last_name.clone() }
+                            oninput={ handle_spouse_change.clone() } />
+                        <label for="last_name" class="form-label">{ "Last Name" }</label>
+                    </div>
+
+                    <div class="form member-form-field">
+                        <input type="text" name="date_of_birth" class="form-input"
+                            placeholder="YYYY-MM-DD" pattern=r"\d{4}-\d{2}-\d{2}"
+                            value={ spouse.date_of_birth.clone() }
+                            oninput={ handle_spouse_change.clone() } />
+                        <label for="date_of_birth" class="form-label">{ "Date of Birth" }</label>
+                    </div>
+
+                    <div class="member-form-section-label member-form-full">{ "Status" }</div>
+
+                    <div class="form-checkbox member-form-field">
+                        <input type="checkbox" id="is_member" name="is_member"
+                            class="form-checkbox-input"
+                            checked={ spouse.is_member }
+                            onchange={{
+                                let spouse = spouse.dispatcher();
+                                Callback::from(move |e: Event| {
+                                    let input = e.target().unwrap()
+                                        .dyn_into::<HtmlInputElement>().unwrap();
+                                    spouse.dispatch(GenericAction::SetBool {
+                                        name: "is_member".to_string(),
+                                        value: input.checked(),
+                                    });
+                                })
+                            }}
+                        />
+                        <label for="is_member" class="form-checkbox-label">{ "Member?" }</label>
+                    </div>
+
+                    <div class="form-checkbox member-form-field">
+                        <input type="checkbox" id="is_active" name="is_active"
+                            class="form-checkbox-input"
+                            checked={ spouse.is_active }
+                            onchange={{
+                                let spouse = spouse.dispatcher();
+                                Callback::from(move |e: Event| {
+                                    let input = e.target().unwrap()
+                                        .dyn_into::<HtmlInputElement>().unwrap();
+                                    spouse.dispatch(GenericAction::SetBool {
+                                        name: "is_active".to_string(),
+                                        value: input.checked(),
+                                    });
+                                })
+                            }}
+                        />
+                        <label for="is_active" class="form-checkbox-label">{ "Active?" }</label>
+                    </div>
+
+                    <div class="form-checkbox member-form-field">
+                        <input type="checkbox" id="on_bulletin_email_list"
+                            name="on_bulletin_email_list" class="form-checkbox-input"
+                            checked={ spouse.on_bulletin_email_list }
+                            onchange={{
+                                let spouse = spouse.dispatcher();
+                                Callback::from(move |e: Event| {
+                                    let input = e.target().unwrap()
+                                        .dyn_into::<HtmlInputElement>().unwrap();
+                                    spouse.dispatch(GenericAction::SetBool {
+                                        name: "on_bulletin_email_list".to_string(),
+                                        value: input.checked(),
+                                    });
+                                })
+                            }}
+                        />
+                        <label for="on_bulletin_email_list" class="form-checkbox-label">
+                            { "Bulletin Email List?" }
+                        </label>
+                    </div>
+
+                    <div class="member-form-section-label member-form-full">{ "Contact" }</div>
+
+                    <div class="form member-form-field">
+                        <input type="text" name="cell_phone" class="form-input"
+                            placeholder=" " autocomplete="off"
+                            value={ spouse.cell_phone.clone() }
+                            oninput={ handle_spouse_change.clone() } />
+                        <label for="cell_phone" class="form-label">{ "Cell Phone" }</label>
+                    </div>
+
+                    <div class="form member-form-field">
+                        <input type="text" name="work_phone" class="form-input"
+                            placeholder=" " autocomplete="off"
+                            value={ spouse.work_phone.clone() }
+                            oninput={ handle_spouse_change.clone() } />
+                        <label for="work_phone" class="form-label">{ "Work Phone" }</label>
+                    </div>
+
+                    <div class="member-form-field" />
+
+                    <div class="form member-form-field member-form-full">
+                        <input type="text" name="email_address" class="form-input"
+                            placeholder=" " autocomplete="off"
+                            value={ spouse.email_address.clone() }
+                            oninput={ handle_spouse_change.clone() } />
+                        <label for="email_address" class="form-label">{ "Email Address" }</label>
+                    </div>
+                </div>
+
+            </aside>
         </div>
     }
 }
