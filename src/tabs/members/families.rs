@@ -6,10 +6,17 @@ pub mod families_table;
 use families_form::FamiliesForm;
 use families_table::FamiliesTable;
 
+#[derive(Properties, PartialEq)]
+pub struct FamilySectionProps {
+    pub selected_family_id: UseStateHandle<Option<String>>,
+}
+
 #[function_component(FamilySectionBody)]
-pub fn family_section_body() -> Html {
+pub fn family_section_body(props: &FamilySectionProps) -> Html {
     let refresh_trigger = use_state(|| 0u32);
     let form_collapsed = use_state(|| false);
+
+    let selected_family_id = props.selected_family_id.clone();
 
     let on_family_added = {
         let refresh_trigger = refresh_trigger.clone();
@@ -22,6 +29,13 @@ pub fn family_section_body() -> Html {
         let form_collapsed = form_collapsed.clone();
         Callback::from(move |_: MouseEvent| {
             form_collapsed.set(!*form_collapsed);
+        })
+    };
+
+    let on_select_family = {
+        let selected_family_id = selected_family_id.clone();
+        Callback::from(move |family_id: String| {
+            selected_family_id.set(Some(family_id));
         })
     };
 
@@ -55,7 +69,11 @@ pub fn family_section_body() -> Html {
                     </div>
                 }
                 <div class="member-table-pane">
-                    <FamiliesTable refresh_trigger={ *refresh_trigger } />
+                    <FamiliesTable
+                        refresh_trigger={ *refresh_trigger }
+                        on_select_family={ on_select_family }
+                        selected_family_id={ (*selected_family_id).clone() }
+                    />
                 </div>
             </div>
         </div>

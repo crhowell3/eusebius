@@ -1562,3 +1562,74 @@ body {
     height: 3rem;
     margin-bottom: 0;
 }
+
+.works-table-row--active-family {
+    background: var(--color-accent-50);
+    box-shadow: inset 3px 0 0 var(--color-accent-500);
+}
+
+.works-table-row--active-family:hover {
+    background: var(--color-accent-100);
+}
+
+[data-theme="dark"] .works-table-row--active-family {
+    background: rgba(74, 95, 173, 0.12);
+}
+
+[data-theme="dark"] .works-table-row--active-family:hover {
+    background: rgba(74, 95, 173, 0.18);
+}
+
+.cell-input {
+    width: 100%;
+    padding: 4px 6px;
+    font-size: var(--text-sm);
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--border-radius-xs);
+    outline: none;
+    transition:
+        border-color var(--transition-fast),
+        background var(--transition-fast);
+}
+
+.cell-input:hover {
+    border-color: var(--border-default);
+}
+
+.cell-input:focus {
+    border-color: var(--input-border-focus);
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-focus);
+}
+
+.cell-checkbox {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--color-accent-500);
+    cursor: pointer;
+}
+
+.family-add-row {
+    cursor: pointer;
+    color: var(--text-tertiary);
+}
+
+.family-add-row:hover {
+    background: var(--bg-sunken);
+    color: var(--color-accent-500);
+}
+
+.family-add-cell {
+    padding: var(--space-3) var(--space-4) !important;
+}
+
+.family-add-content {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+}

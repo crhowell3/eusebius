@@ -12,6 +12,8 @@ use shared::Family;
 #[derive(Properties, PartialEq)]
 pub struct FamiliesTableProps {
     pub refresh_trigger: u32,
+    pub on_select_family: Callback<String>,
+    pub selected_family_id: Option<String>,
 }
 
 async fn fetch_families() -> Result<Vec<Family>, String> {
@@ -466,15 +468,26 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                             { for sorted_families.iter().map(|m| {
                                 let family_id = m.family_id.clone();
                                 let is_checked = (*selected).contains(&m.family_id);
+
+                                let is_active_family = props.selected_family_id.as_deref() == Some(m.family_id.as_str());
+
                                 let on_row_toggle = on_row_toggle.clone();
-                                let row_class = if is_checked {
-                                    "works-table-row works-table-row--selected"
-                                } else {
-                                    "works-table-row"
+
+                                let on_dbl_click = {
+                                    let on_select_family = props.on_select_family.clone();
+                                    let family_id = m.family_id.clone();
+                                    Callback::from(move |_: MouseEvent| {
+                                        on_select_family.emit(family_id.clone());
+                                    })
+                                };
+                                let row_class = match (is_checked, is_active_family) {
+                                    (true, _)     => "works-table-row works-table-row--selected",
+                                    (false, true) => "works-table-row works-table-row--active-family",
+                                    (false, false) => "works-table-row",
                                 };
 
                                 html! {
-                                    <tr key={ m.family_id.clone() } class={ row_class }>
+                                    <tr key={ m.family_id.clone() } class={ row_class } ondblclick={ on_dbl_click }>
                                         <td class="works-table-td works-table-td--check">
                                             <input
                                                 type="checkbox"

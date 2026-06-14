@@ -10,11 +10,13 @@ use spouses::Spouses;
 
 #[function_component(MemberTabBody)]
 pub fn member_tab_body() -> Html {
+    let selected_family_id = use_state(|| None::<String>);
+
     html! {
         <>
-            <FamilySectionBody />
+            <FamilySectionBody selected_family_id={ selected_family_id.clone() } />
             <Spouses />
-            <Children />
+            <Children selected_family_id={ (*selected_family_id).clone() } />
         </>
     }
 }
