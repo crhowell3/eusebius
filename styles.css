@@ -1650,8 +1650,6 @@ body {
     padding: var(--space-4);
     width: 100%;
     min-width: 0;
-    overflow-x: visible;
-    overflow-y: visible;
     box-sizing: border-box;
 }
 .member-bottom-section {
