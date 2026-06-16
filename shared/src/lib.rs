@@ -2,7 +2,15 @@ use serde::{Deserialize, Serialize};
 
 pub enum GenericAction {
     SetField { name: String, value: String },
+    SetBool { name: String, value: bool },
     Reset,
+}
+
+pub enum SpouseAction {
+    SetField { name: String, value: String },
+    SetBool { name: String, value: bool },
+    Reset,
+    Load(Spouse),
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq)]
@@ -30,6 +38,10 @@ impl yew::prelude::Reducible for Work {
                     "description" => updated.description = value,
                     _ => {}
                 }
+                std::rc::Rc::new(updated)
+            }
+            GenericAction::SetBool { name: _, value: _ } => {
+                let updated = (*self).clone();
                 std::rc::Rc::new(updated)
             }
             GenericAction::Reset => std::rc::Rc::new(Work::default()),
@@ -92,6 +104,10 @@ impl yew::prelude::Reducible for Baptism {
                 }
                 std::rc::Rc::new(updated)
             }
+            GenericAction::SetBool { name: _, value: _ } => {
+                let updated = (*self).clone();
+                std::rc::Rc::new(updated)
+            }
             GenericAction::Reset => std::rc::Rc::new(Baptism::default()),
         }
     }
@@ -100,14 +116,56 @@ impl yew::prelude::Reducible for Baptism {
 #[derive(Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Child {
+    pub id: i64,
     pub family_id: String,
     pub first_name: String,
     pub last_name: String,
+    pub date_of_birth: String,
+    pub is_member: bool,
+    pub is_active: bool,
+    pub cell_phone: String,
+    pub work_phone: String,
+    pub email_address: String,
+    pub on_bulletin_email_list: bool,
 }
 
 impl Child {
     pub fn new() -> Self {
         Self::default()
+    }
+}
+
+impl yew::prelude::Reducible for Child {
+    type Action = GenericAction;
+
+    fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
+        match action {
+            GenericAction::SetField { name, value } => {
+                let mut updated = (*self).clone();
+                match name.as_str() {
+                    "family_id" => updated.family_id = value,
+                    "last_name" => updated.last_name = value,
+                    "first_name" => updated.first_name = value,
+                    "date_of_birth" => updated.date_of_birth = value,
+                    "cell_phone" => updated.cell_phone = value,
+                    "work_phone" => updated.work_phone = value,
+                    "email_address" => updated.email_address = value,
+                    _ => {}
+                }
+                std::rc::Rc::new(updated)
+            }
+            GenericAction::SetBool { name, value } => {
+                let mut updated = (*self).clone();
+                match name.as_str() {
+                    "is_member" => updated.is_member = value,
+                    "is_active" => updated.is_active = value,
+                    "on_bulletin_email_list" => updated.on_bulletin_email_list = value,
+                    _ => {}
+                }
+                std::rc::Rc::new(updated)
+            }
+            GenericAction::Reset => std::rc::Rc::new(Child::default()),
+        }
     }
 }
 
@@ -117,11 +175,53 @@ pub struct Spouse {
     pub family_id: String,
     pub first_name: String,
     pub last_name: String,
+    pub date_of_birth: String,
+    pub is_member: bool,
+    pub is_active: bool,
+    pub cell_phone: String,
+    pub work_phone: String,
+    pub email_address: String,
+    pub on_bulletin_email_list: bool,
 }
 
 impl Spouse {
     pub fn new() -> Self {
         Self::default()
+    }
+}
+
+impl yew::prelude::Reducible for Spouse {
+    type Action = SpouseAction;
+
+    fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
+        match action {
+            SpouseAction::SetField { name, value } => {
+                let mut updated = (*self).clone();
+                match name.as_str() {
+                    "family_id" => updated.family_id = value,
+                    "last_name" => updated.last_name = value,
+                    "first_name" => updated.first_name = value,
+                    "date_of_birth" => updated.date_of_birth = value,
+                    "cell_phone" => updated.cell_phone = value,
+                    "work_phone" => updated.work_phone = value,
+                    "email_address" => updated.email_address = value,
+                    _ => {}
+                }
+                std::rc::Rc::new(updated)
+            }
+            SpouseAction::SetBool { name, value } => {
+                let mut updated = (*self).clone();
+                match name.as_str() {
+                    "is_member" => updated.is_member = value,
+                    "is_active" => updated.is_active = value,
+                    "on_bulletin_email_list" => updated.on_bulletin_email_list = value,
+                    _ => {}
+                }
+                std::rc::Rc::new(updated)
+            }
+            SpouseAction::Reset => std::rc::Rc::new(Spouse::default()),
+            SpouseAction::Load(existing) => std::rc::Rc::new(existing),
+        }
     }
 }
 
@@ -166,8 +266,6 @@ impl yew::prelude::Reducible for Family {
                     "mail_route" => updated.mail_route = value,
                     "last_name" => updated.last_name = value,
                     "first_name" => updated.first_name = value,
-                    //"is_member" => updated.is_member = value,
-                    //"is_active" => updated.is_active = value,
                     "date_of_birth" => updated.date_of_birth = value,
                     "anniversary_month" => updated.anniversary_month = value,
                     "anniversary_day" => updated.anniversary_day = value,
@@ -179,7 +277,16 @@ impl yew::prelude::Reducible for Family {
                     "state" => updated.state = value,
                     "zip" => updated.zip = value,
                     "email_address" => updated.email_address = value,
-                    //"on_bulletin_email_list" => updated.on_bulletin_email_list = value,
+                    _ => {}
+                }
+                std::rc::Rc::new(updated)
+            }
+            GenericAction::SetBool { name, value } => {
+                let mut updated = (*self).clone();
+                match name.as_str() {
+                    "is_member" => updated.is_member = value,
+                    "is_active" => updated.is_active = value,
+                    "on_bulletin_email_list" => updated.on_bulletin_email_list = value,
                     _ => {}
                 }
                 std::rc::Rc::new(updated)

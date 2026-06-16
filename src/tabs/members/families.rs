@@ -1,26 +1,32 @@
 use yew::prelude::*;
 
-pub mod families_form;
-pub mod families_table;
+use crate::components::tables::FamiliesTable;
 
-use families_form::FamiliesForm;
-use families_table::FamiliesTable;
+#[derive(Properties, PartialEq)]
+pub struct FamilySectionProps {
+    pub refresh_trigger: u32,
+    pub selected_family_id: UseStateHandle<Option<String>>,
+}
 
 #[function_component(FamilySectionBody)]
-pub fn family_section_body() -> Html {
-    let refresh_trigger = use_state(|| 0u32);
-
-    let on_family_added = {
-        let refresh_trigger = refresh_trigger.clone();
-        Callback::from(move |_: ()| {
-            refresh_trigger.set(*refresh_trigger + 1);
+pub fn family_section_body(props: &FamilySectionProps) -> Html {
+    let selected_family_id = props.selected_family_id.clone();
+    let on_select_family = {
+        let selected_family_id = selected_family_id.clone();
+        Callback::from(move |family_id: String| {
+            selected_family_id.set(Some(family_id));
         })
     };
 
     html! {
-        <div class="works-layout">
-            <FamiliesForm on_family_added={ on_family_added }/>
-            <FamiliesTable refresh_trigger={ *refresh_trigger }/>
+        <div class="member-layout">
+            <div class="member-table-pane">
+                <FamiliesTable
+                    refresh_trigger={ props.refresh_trigger }
+                    on_select_family={ on_select_family }
+                    selected_family_id={ (*selected_family_id).clone() }
+                />
+            </div>
         </div>
     }
 }

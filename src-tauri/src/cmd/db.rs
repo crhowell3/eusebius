@@ -145,11 +145,84 @@ pub async fn delete_works(db: State<'_, DbState>, work_codes: Vec<String>) -> Re
 //
 
 #[tauri::command]
-pub async fn get_children(db: State<'_, DbState>) -> Result<Vec<Child>, String> {
-    sqlx::query_as::<_, Child>("SELECT family_id, first_name, last_name FROM children")
-        .fetch_all(&db.0)
-        .await
-        .map_err(|e| e.to_string())
+pub async fn get_children_by_family(
+    db: State<'_, DbState>,
+    family_id: String,
+) -> Result<Vec<Child>, String> {
+    sqlx::query_as::<_, Child>(
+        "SELECT id, family_id, first_name, last_name, is_member, is_active, date_of_birth, cell_phone, work_phone, email_address, on_bulletin_email_list
+            FROM children
+            WHERE family_id = ?
+            ORDER BY id ASC"
+        )
+    .bind(&family_id)
+    .fetch_all(&db.0)
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn save_children(
+    db: State<'_, DbState>,
+    family_id: String,
+    children: Vec<Child>,
+) -> Result<Vec<Child>, String> {
+    for child in &children {
+        if child.id <= 0 {
+            sqlx::query(
+                "INSERT INTO children
+                    (family_id, first_name, last_name, is_member, is_active,
+                     date_of_birth, cell_phone, work_phone, email_address, on_bulletin_email_list)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            )
+            .bind(&child.family_id)
+            .bind(&child.first_name)
+            .bind(&child.last_name)
+            .bind(child.is_member)
+            .bind(child.is_active)
+            .bind(&child.date_of_birth)
+            .bind(&child.cell_phone)
+            .bind(&child.work_phone)
+            .bind(&child.email_address)
+            .bind(child.on_bulletin_email_list)
+            .execute(&db.0)
+            .await
+            .map_err(|e| e.to_string())?;
+        } else {
+            sqlx::query(
+                "UPDATE children SET
+                    first_name = ?, last_name = ?, is_member = ?, is_active = ?,
+                    date_of_birth = ?, cell_phone = ?, work_phone = ?,
+                    email_address = ?, on_bulletin_email_list = ?
+                 WHERE id = ?",
+            )
+            .bind(&child.first_name)
+            .bind(&child.last_name)
+            .bind(child.is_member)
+            .bind(child.is_active)
+            .bind(&child.date_of_birth)
+            .bind(&child.cell_phone)
+            .bind(&child.work_phone)
+            .bind(&child.email_address)
+            .bind(child.on_bulletin_email_list)
+            .bind(child.id)
+            .execute(&db.0)
+            .await
+            .map_err(|e| e.to_string())?;
+        }
+    }
+
+    sqlx::query_as::<_, Child>(
+        "SELECT id, family_id, first_name, last_name, is_member, is_active,
+                date_of_birth, cell_phone, work_phone, email_address, on_bulletin_email_list
+         FROM children
+         WHERE family_id = ?
+         ORDER BY id ASC",
+    )
+    .bind(&family_id)
+    .fetch_all(&db.0)
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -168,27 +241,76 @@ pub async fn add_child(db: State<'_, DbState>, child: Child) -> Result<(), Strin
     Ok(())
 }
 
+#[tauri::command]
+pub async fn delete_children(db: State<'_, DbState>, child_ids: Vec<i64>) -> Result<(), String> {
+    if child_ids.is_empty() {
+        return Ok(());
+    }
+    let mut builder = QueryBuilder::new("DELETE FROM children WHERE id IN (");
+    let mut separated = builder.separated(", ");
+    for id in &child_ids {
+        separated.push_bind(id);
+    }
+    separated.push_unseparated(")");
+    builder
+        .build()
+        .execute(&db.0)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 //
 // `Spouse` Commands
 //
 
 #[tauri::command]
-pub async fn get_spouse(db: State<'_, DbState>) -> Result<Vec<Spouse>, String> {
-    sqlx::query_as::<_, Spouse>("SELECT family_id, first_name, last_name FROM spouses")
-        .fetch_all(&db.0)
-        .await
-        .map_err(|e| e.to_string())
+pub async fn get_spouse(
+    db: State<'_, DbState>,
+    family_id: String,
+) -> Result<Option<Spouse>, String> {
+    sqlx::query_as::<_, Spouse>(
+        "SELECT family_id, first_name, last_name, date_of_birth,
+                is_member, is_active, cell_phone, work_phone,
+                email_address, on_bulletin_email_list
+         FROM spouses WHERE family_id = ?",
+    )
+    .bind(&family_id)
+    .fetch_optional(&db.0)
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn add_spouse(db: State<'_, DbState>, spouse: Spouse) -> Result<(), String> {
+pub async fn save_spouse(db: State<'_, DbState>, spouse: Spouse) -> Result<(), String> {
+    // INSERT OR REPLACE handles both create and update in one query
     sqlx::query(
-        "INSERT INTO spouses (family_id, first_name, last_name)
-        VALUES (?, ?, ?)",
+        "INSERT INTO spouses
+            (family_id, first_name, last_name, date_of_birth,
+             is_member, is_active, cell_phone, work_phone,
+             email_address, on_bulletin_email_list)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(family_id) DO UPDATE SET
+            first_name             = excluded.first_name,
+            last_name              = excluded.last_name,
+            date_of_birth          = excluded.date_of_birth,
+            is_member              = excluded.is_member,
+            is_active              = excluded.is_active,
+            cell_phone             = excluded.cell_phone,
+            work_phone             = excluded.work_phone,
+            email_address          = excluded.email_address,
+            on_bulletin_email_list = excluded.on_bulletin_email_list",
     )
     .bind(&spouse.family_id)
     .bind(&spouse.first_name)
     .bind(&spouse.last_name)
+    .bind(&spouse.date_of_birth)
+    .bind(spouse.is_member)
+    .bind(spouse.is_active)
+    .bind(&spouse.cell_phone)
+    .bind(&spouse.work_phone)
+    .bind(&spouse.email_address)
+    .bind(spouse.on_bulletin_email_list)
     .execute(&db.0)
     .await
     .map_err(|e| e.to_string())?;
@@ -206,4 +328,61 @@ pub async fn get_families(db: State<'_, DbState>) -> Result<Vec<Family>, String>
         .fetch_all(&db.0)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn add_family(db: State<'_, DbState>, family: Family) -> Result<(), String> {
+    sqlx::query(
+        "INSERT INTO families (family_id, mail_route, last_name, first_name, is_member, is_active, date_of_birth, anniversary_month, anniversary_day, home_phone, cell_phone, work_phone, address, city, state, zip, email_address, on_bulletin_email_list)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(&family.family_id)
+    .bind(&family.mail_route)
+    .bind(&family.last_name)
+    .bind(&family.first_name)
+    .bind(&family.is_member)
+    .bind(&family.is_active)
+    .bind(&family.date_of_birth)
+    .bind(&family.anniversary_month)
+    .bind(&family.anniversary_day)
+    .bind(&family.home_phone)
+    .bind(&family.cell_phone)
+    .bind(&family.work_phone)
+    .bind(&family.address)
+    .bind(&family.city)
+    .bind(&family.state)
+    .bind(&family.zip)
+    .bind(&family.email_address)
+    .bind(&family.on_bulletin_email_list)
+    .execute(&db.0)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_families(
+    db: State<'_, DbState>,
+    family_ids: Vec<String>,
+) -> Result<(), String> {
+    if family_ids.is_empty() {
+        return Ok(());
+    }
+
+    let mut builder = QueryBuilder::new("DELETE FROM families WHERE family_id IN (");
+
+    let mut separated = builder.separated(", ");
+    for id in &family_ids {
+        separated.push_bind(id);
+    }
+    separated.push_unseparated(")");
+
+    builder
+        .build()
+        .execute(&db.0)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }
