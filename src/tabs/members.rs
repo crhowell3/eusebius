@@ -88,7 +88,7 @@ pub fn member_tab_body() -> Html {
                 <FamilySectionBody refresh_trigger={ *refresh_trigger } selected_family_id={ selected_family_id.clone() } />
                 <div class="member-bottom-section">
                     <div class="member-spouse-pane">
-                        <Spouses />
+                        <Spouses selected_family_id={ (*selected_family_id).clone() } />
                     </div>
                     <div class="member-children-pane">
                         <Children selected_family_id={ (*selected_family_id).clone() } />

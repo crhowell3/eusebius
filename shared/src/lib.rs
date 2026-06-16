@@ -6,6 +6,13 @@ pub enum GenericAction {
     Reset,
 }
 
+pub enum SpouseAction {
+    SetField { name: String, value: String },
+    SetBool { name: String, value: bool },
+    Reset,
+    Load(Spouse),
+}
+
 #[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub struct TableInfo {
     pub name: String,
@@ -184,11 +191,11 @@ impl Spouse {
 }
 
 impl yew::prelude::Reducible for Spouse {
-    type Action = GenericAction;
+    type Action = SpouseAction;
 
     fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
         match action {
-            GenericAction::SetField { name, value } => {
+            SpouseAction::SetField { name, value } => {
                 let mut updated = (*self).clone();
                 match name.as_str() {
                     "family_id" => updated.family_id = value,
@@ -202,7 +209,7 @@ impl yew::prelude::Reducible for Spouse {
                 }
                 std::rc::Rc::new(updated)
             }
-            GenericAction::SetBool { name, value } => {
+            SpouseAction::SetBool { name, value } => {
                 let mut updated = (*self).clone();
                 match name.as_str() {
                     "is_member" => updated.is_member = value,
@@ -212,7 +219,8 @@ impl yew::prelude::Reducible for Spouse {
                 }
                 std::rc::Rc::new(updated)
             }
-            GenericAction::Reset => std::rc::Rc::new(Spouse::default()),
+            SpouseAction::Reset => std::rc::Rc::new(Spouse::default()),
+            SpouseAction::Load(existing) => std::rc::Rc::new(existing),
         }
     }
 }

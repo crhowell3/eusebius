@@ -41,6 +41,13 @@ const SPOUSES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS spouses (
     family_id       TEXT PRIMARY KEY NOT NULL,
     first_name      TEXT NOT NULL,
     last_name       TEXT NOT NULL,
+    is_member               INTEGER NOT NULL DEFAULT 0,
+    is_active               INTEGER NOT NULL DEFAULT 0,
+    date_of_birth           TEXT,
+    cell_phone              TEXT,
+    work_phone              TEXT,
+    email_address           TEXT,
+    on_bulletin_email_list  INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (family_id) REFERENCES families(family_id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
@@ -123,7 +130,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(tauri::generate_handler![
             add_child,
-            add_spouse,
+            save_spouse,
             add_baptism,
             add_family,
             get_baptisms,
