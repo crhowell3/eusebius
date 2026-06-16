@@ -295,3 +295,42 @@ impl yew::prelude::Reducible for Family {
         }
     }
 }
+
+#[derive(Clone, Serialize, Deserialize, Default)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
+pub struct Death {
+    pub id: i64,
+    pub first_name: String,
+    pub last_name: String,
+    pub date_of_death: String,
+}
+
+impl Death {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl yew::prelude::Reducible for Death {
+    type Action = GenericAction;
+
+    fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
+        match action {
+            GenericAction::SetField { name, value } => {
+                let mut updated = (*self).clone();
+                match name.as_str() {
+                    "last_name" => updated.last_name = value,
+                    "first_name" => updated.first_name = value,
+                    "date_of_death" => updated.date_of_death = value,
+                    _ => {}
+                }
+                std::rc::Rc::new(updated)
+            }
+            GenericAction::SetBool { name: _, value: _ } => {
+                let updated = (*self).clone();
+                std::rc::Rc::new(updated)
+            }
+            GenericAction::Reset => std::rc::Rc::new(Death::default()),
+        }
+    }
+}

@@ -1,7 +1,7 @@
 use sqlx::{QueryBuilder, SqlitePool};
 use tauri::State;
 
-use shared::{Baptism, Child, Family, Spouse, TableInfo, Work};
+use shared::{Baptism, Child, Death, Family, Spouse, TableInfo, Work};
 
 pub struct DbState(pub SqlitePool);
 
@@ -136,6 +136,34 @@ pub async fn delete_works(db: State<'_, DbState>, work_codes: Vec<String>) -> Re
         .execute(&db.0)
         .await
         .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+//
+// `Death` Commands
+//
+
+#[tauri::command]
+pub async fn get_deaths(db: State<'_, DbState>) -> Result<Vec<Death>, String> {
+    sqlx::query_as::<_, Death>("SELECT * FROM deaths")
+        .fetch_all(&db.0)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn add_death(db: State<'_, DbState>, death: Death) -> Result<(), String> {
+    sqlx::query(
+        "INSERT INTO deaths (first_name, last_name, date_of_death)
+        VALUES (?, ?, ?)",
+    )
+    .bind(&death.first_name)
+    .bind(&death.last_name)
+    .bind(&death.date_of_death)
+    .execute(&db.0)
+    .await
+    .map_err(|e| e.to_string())?;
 
     Ok(())
 }

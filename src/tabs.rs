@@ -9,7 +9,7 @@ pub mod works;
 
 pub use about::About;
 pub use baptisms::BaptismsTabBody;
-pub use deaths::Deaths;
+pub use deaths::DeathTabBody;
 pub use main_menu::MainMenu;
 pub use members::MemberTabBody;
 pub use settings::Settings;

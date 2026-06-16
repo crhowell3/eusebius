@@ -3,7 +3,8 @@ use web_sys::window;
 use yew::prelude::*;
 
 use crate::tabs::{
-    About, BaptismsTabBody, Deaths, MainMenu, MemberTabBody, Settings, ViewTables, WorkTabBody,
+    About, BaptismsTabBody, DeathTabBody, MainMenu, MemberTabBody, Settings, ViewTables,
+    WorkTabBody,
 };
 
 const COMMIT: &str = env!("GIT_COMMIT_HASH");
@@ -54,7 +55,7 @@ fn tab_pane(props: &TabPaneProps) -> Html {
     let content = match props.id.as_str() {
         "update-members" => html! { <MemberTabBody /> },
         "update-works" => html! { <WorkTabBody /> },
-        "update-deaths" => html! { <Deaths /> },
+        "update-deaths" => html! { <DeathTabBody /> },
         "update-baptisms" => html! { <BaptismsTabBody /> },
         "view-tables" => html! { <ViewTables /> },
         "settings" => html! { <Settings /> },
