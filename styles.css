@@ -811,11 +811,9 @@ body {
 
 .tab-content {
     display: none;
-    width: 100%;
 }
 .tab-content--active {
     display: block;
-    width: 100%;
 }
 
 /* =========================================================
