@@ -1,7 +1,6 @@
 use yew::prelude::*;
-pub mod families_table;
 
-use families_table::FamiliesTable;
+use crate::components::tables::FamiliesTable;
 
 #[derive(Properties, PartialEq)]
 pub struct FamilySectionProps {

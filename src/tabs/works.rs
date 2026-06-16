@@ -1,10 +1,7 @@
 use yew::prelude::*;
 
-pub mod works_form;
-pub mod works_table;
-
-use works_form::WorksForm;
-use works_table::WorksTable;
+use crate::components::forms::WorksForm;
+use crate::components::tables::WorksTable;
 
 #[function_component(WorkTabBody)]
 pub fn work_tab_body() -> Html {

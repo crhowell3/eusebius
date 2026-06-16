@@ -1,10 +1,7 @@
 use yew::prelude::*;
 
-pub mod baptisms_form;
-pub mod baptisms_table;
-
-use baptisms_form::BaptismsForm;
-use baptisms_table::BaptismsTable;
+use crate::components::forms::BaptismsForm;
+use crate::components::tables::BaptismsTable;
 
 #[function_component(BaptismsTabBody)]
 pub fn baptisms_tab_body() -> Html {
