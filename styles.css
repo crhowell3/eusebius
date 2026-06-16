@@ -811,9 +811,11 @@ body {
 
 .tab-content {
     display: none;
+    width: 100%;
 }
 .tab-content--active {
     display: block;
+    width: 100%;
 }
 
 /* =========================================================
@@ -1634,21 +1636,39 @@ body {
     font-weight: var(--weight-medium);
 }
 
+.member-tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    width: 100%;
+    min-width: 0;
+}
+
 .member-tab-root {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
     padding: var(--space-4);
     width: 100%;
-    overflow-x: auto;
+    min-width: 0;
+    overflow-x: visible;
+    overflow-y: visible;
+    box-sizing: border-box;
 }
-
 .member-bottom-section {
     display: grid;
     grid-template-columns: 380px 1fr;
     gap: var(--space-4);
     align-items: start;
     min-width: 640px;
+}
+
+.member-tab-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-shrink: 0;
 }
 
 .member-spouse-pane {
@@ -1662,4 +1682,144 @@ body {
 
 .member-children-pane > .member-layout {
     display: contents;
+}
+
+.slide-panel-backdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-overlay);
+    z-index: var(--z-overlay);
+    cursor: pointer;
+    animation: fade-in var(--transition-base) ease forwards;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* ── Panel ── */
+.slide-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: unset;
+    width: 480px;
+    max-width: 90%;
+    height: 100vh;
+    max-height: 100vh;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 0 var(--border-radius-lg) var(--border-radius-lg) 0;
+    box-shadow: var(--shadow-xl);
+    display: flex;
+    flex-direction: column;
+    z-index: var(--z-modal);
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        transform var(--transition-slow),
+        opacity var(--transition-slow);
+}
+
+.slide-panel--open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* ── Panel header ── */
+.slide-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-sunken);
+    border-radius: 0 var(--border-radius-lg) 0 0;
+    flex-shrink: 0;
+}
+
+.slide-panel-title {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.slide-panel-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    border-radius: var(--border-radius-xs);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition:
+        background var(--transition-fast),
+        color var(--transition-fast);
+}
+
+.slide-panel-close:hover {
+    background: var(--bg-page);
+    color: var(--text-primary);
+}
+
+/* ── Panel body — scrollable ── */
+.slide-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-4);
+}
+
+/* Strip the card wrapper from FamiliesForm inside the panel —
+   the panel itself is the container */
+.slide-panel-body .member-form-card {
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    background: transparent;
+}
+
+.slide-panel-body .works-form-header {
+    display: none; /* panel header already shows the title */
+}
+
+.slide-panel-body .works-form-footer {
+    background: transparent;
+    border-top: 1px solid var(--border-subtle);
+    padding: var(--space-3) 0 0 0;
+}
+
+/* ── Toggle button (in toolbar) ── */
+.member-form-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    height: var(--btn-height-sm);
+    padding: var(--btn-padding-sm);
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition:
+        background var(--transition-fast),
+        color var(--transition-fast);
+}
+
+.member-form-toggle:hover {
+    background: var(--bg-sunken);
+    color: var(--text-primary);
 }
