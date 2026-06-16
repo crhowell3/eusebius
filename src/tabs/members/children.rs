@@ -47,6 +47,22 @@ async fn save_children(family_id: &str, children: Vec<Child>) -> Result<Vec<Chil
     from_value::<Vec<Child>>(result).map_err(|e| e.to_string())
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DeleteChildrenArgs {
+    child_ids: Vec<i64>,
+}
+
+async fn delete_children(child_ids: Vec<i64>) -> Result<(), String> {
+    let args = to_value(&DeleteChildrenArgs { child_ids }).map_err(|e| e.to_string())?;
+    let result = invoke("delete_children", args).await;
+    if result.is_undefined() || result.is_null() {
+        Ok(())
+    } else {
+        Err(result.as_string().unwrap_or("Unknown error".to_string()))
+    }
+}
+
 enum FieldValue {
     Text(String),
     Bool(bool),
@@ -59,7 +75,7 @@ pub fn children(props: &ChildrenTableProps) -> Html {
     let saving = use_state(|| false);
     let dirty = use_state(|| false);
     let next_temp_id = use_state(|| -1i64);
-    let selected = use_state(HashSet::<String>::new);
+    let selected = use_state(HashSet::<i64>::new);
     let initial_load = use_state(|| true);
 
     {
@@ -211,12 +227,80 @@ pub fn children(props: &ChildrenTableProps) -> Html {
         }
     };
 
+    let some_checked = !(*selected).is_empty();
+    let selected_count = (*selected).len();
+
+    let all_checked =
+        !(*children).is_empty() && (*children).iter().all(|c| (*selected).contains(&c.id));
+
+    let on_row_toggle = {
+        let selected = selected.clone();
+        Callback::from(move |id: i64| {
+            let mut next = (*selected).clone();
+            if next.contains(&id) {
+                next.remove(&id);
+            } else {
+                next.insert(id);
+            }
+            selected.set(next);
+        })
+    };
+
+    let on_select_all = {
+        let children = children.clone();
+        let selected = selected.clone();
+        Callback::from(move |_: Event| {
+            if (*children).iter().all(|c| (*selected).contains(&c.id)) {
+                selected.set(HashSet::new());
+            } else {
+                selected.set((*children).iter().map(|c| c.id).collect());
+            }
+        })
+    };
+
+    let on_delete = {
+        let selected = selected.clone();
+        let children = children.clone();
+        let dirty = dirty.clone();
+        Callback::from(move |_: MouseEvent| {
+            let to_delete: Vec<i64> = (*selected).iter().cloned().collect();
+            let selected = selected.clone();
+            let children = children.clone();
+            let dirty = dirty.clone();
+            spawn_local(async move {
+                match delete_children(to_delete).await {
+                    Ok(_) => {
+                        let remaining = (*children)
+                            .iter()
+                            .filter(|c| !(*selected).contains(&c.id))
+                            .cloned()
+                            .collect();
+                        children.set(remaining);
+                        selected.set(HashSet::new());
+                        dirty.set(false);
+                    }
+                    Err(_e) => {
+                        // TODO: proper error handling
+                    }
+                }
+            });
+        })
+    };
+
     let has_family = props.selected_family_id.is_some();
 
     html! {
         <section class="works-table-card">
             <div class="works-table-toolbar">
                 <div class="works-table-toolbar-left">
+                    <span class="works-form-header-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </span>
                     <h3 class="works-table-title">{ "Children" }</h3>
                     if let Some(fid) = &props.selected_family_id {
                         <span class="works-table-count">
@@ -228,6 +312,28 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                     }
                 </div>
                 <div class="works-table-toolbar-right">
+                    if some_checked {
+                        <span class="works-table-selected-label">
+                            { format!("{} selected", selected_count) }
+                        </span>
+                    }
+                    <button
+                        class="btn btn-icon danger"
+                        disabled={ !some_checked }
+                        onclick={ on_delete }
+                        title="Delete selected"
+                        aria-label="Delete selected"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                            <path d="M10 11v6" />
+                            <path d="M14 11v6" />
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                        </svg>
+                    </button>
                     <button
                         class="btn btn-primary btn-sm"
                         disabled={ !*dirty || *saving || !has_family }
@@ -264,6 +370,7 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                 } else {
                     <table class="family-table">
                         <colgroup>
+                            <col style="width: 44px" />   // checkbox
                             <col style="width: 130px" />  // first name
                             <col style="width: 130px" />  // last name
                             <col style="width: 60px" />   // member
@@ -276,6 +383,9 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                         </colgroup>
                         <thead>
                             <tr>
+                                <th class="works-table-th works-table-th--check">
+                                    <input type="checkbox" checked={ all_checked } onchange={ on_select_all } />
+                                </th>
                                 <th class="works-table-th">{ "First Name" }</th>
                                 <th class="works-table-th">{ "Last Name" }</th>
                                 <th class="works-table-th">{ "Mbr?" }</th>
@@ -289,8 +399,25 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                         </thead>
                         <tbody>
                         { for (*children).iter().enumerate().map(|(idx, c)| {
+                                let child_id = c.id;
+                                let is_checked = (*selected).contains(&c.id);
+                                let on_row_toggle = on_row_toggle.clone();
+                                let row_class = if is_checked {
+                                    "works-table-row works-table-row--selected"
+                                } else {
+                                    "works-table-row"
+                                };
                                 html! {
-                                    <tr key={ c.id } class="works-table-row">
+                                    <tr key={ c.id } class={ row_class }>
+                                        <td class="works-table-td works-table-td--check">
+                                            <input
+                                                type="checkbox"
+                                                checked={ is_checked }
+                                                onchange={ Callback::from(move |_: Event| {
+                                                    on_row_toggle.emit(child_id);
+                                                }) }
+                                            />
+                                        </td>
                                         <td class="works-table-td">
                                             { text_input(idx, "first_name", &c.first_name, &on_field_change) }
                                         </td>

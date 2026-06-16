@@ -137,6 +137,7 @@ pub fn run() {
             delete_baptisms,
             delete_families,
             delete_works,
+            delete_children,
             get_children_by_family,
             get_families,
             get_spouse,

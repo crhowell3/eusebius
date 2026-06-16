@@ -241,6 +241,25 @@ pub async fn add_child(db: State<'_, DbState>, child: Child) -> Result<(), Strin
     Ok(())
 }
 
+#[tauri::command]
+pub async fn delete_children(db: State<'_, DbState>, child_ids: Vec<i64>) -> Result<(), String> {
+    if child_ids.is_empty() {
+        return Ok(());
+    }
+    let mut builder = QueryBuilder::new("DELETE FROM children WHERE id IN (");
+    let mut separated = builder.separated(", ");
+    for id in &child_ids {
+        separated.push_bind(id);
+    }
+    separated.push_unseparated(")");
+    builder
+        .build()
+        .execute(&db.0)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 //
 // `Spouse` Commands
 //
