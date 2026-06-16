@@ -11,6 +11,7 @@ use spouses::Spouses;
 
 #[function_component(MemberTabBody)]
 pub fn member_tab_body() -> Html {
+    let refresh_trigger = use_state(|| 0u32);
     let selected_family_id = use_state(|| None::<String>);
 
     let form_open = use_state(|| false);
@@ -75,13 +76,16 @@ pub fn member_tab_body() -> Html {
                     <FamiliesForm on_family_added={
                         {
                             let form_open = form_open.clone();
-                            Callback::from(move |_: ()| form_open.set(false))
+                            let refresh_trigger = refresh_trigger.clone();
+                            Callback::from(move |_: ()| {
+                                refresh_trigger.set(*refresh_trigger + 1); form_open.set(false)
+                            })
                         }
                     } />
                 </div>
             </div>
             <div class="member-tab-content">
-                <FamilySectionBody selected_family_id={ selected_family_id.clone() } />
+                <FamilySectionBody refresh_trigger={ *refresh_trigger } selected_family_id={ selected_family_id.clone() } />
                 <div class="member-bottom-section">
                     <div class="member-spouse-pane">
                         <Spouses />

@@ -2,7 +2,7 @@ use serde::Serialize;
 use serde_wasm_bindgen::to_value;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{HtmlInputElement, HtmlTextAreaElement};
+use web_sys::{HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
 use crate::utils::invoke;
@@ -52,6 +52,8 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
             let (name, value) = if let Ok(input) = target.clone().dyn_into::<HtmlInputElement>() {
                 (input.name(), input.value())
+            } else if let Ok(select) = target.clone().dyn_into::<HtmlSelectElement>() {
+                (select.name(), select.value())
             } else if let Ok(textarea) = target.dyn_into::<HtmlTextAreaElement>() {
                 (textarea.name(), textarea.value())
             } else {
@@ -237,10 +239,10 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
                                 { "" }
                             </option>
                             { for [
-                                ("01", "January"), ("02", "February"), ("03", "March"),
-                                ("04", "April"),   ("05", "May"),      ("06", "June"),
-                                ("07", "July"),    ("08", "August"),   ("09", "September"),
-                                ("10", "October"), ("11", "November"), ("12", "December"),
+                                ("Jan", "January"), ("Feb", "February"), ("Mar", "March"),
+                                ("Apr", "April"),   ("May", "May"),      ("Jun", "June"),
+                                ("Jul", "July"),    ("Aug", "August"),   ("Sep", "September"),
+                                ("Oct", "October"), ("Nov", "November"), ("Dec", "December"),
                             ].iter().map(|(val, label)| {
                                 let selected = new_family.anniversary_month == *val;
                                 html! { <option value={*val} selected={selected}>{ label }</option> }
