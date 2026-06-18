@@ -102,36 +102,22 @@ pub fn deaths_form(props: &DeathsFormProps) -> Html {
                     </div>
                 }
 
-                <div class="form">
-                    <input
-                        type="text"
-                        name="first_name"
-                        autocomplete="off"
-                        class="form-input"
-                        placeholder=""
-                        minlength="2"
-                        maxlength="2"
+                <div class="member-form-section-label member-form-full">{ "Identity" }</div>
+
+                <div class="form member-form-field">
+                    <input type="text" name="first_name" class="form-input"
+                        placeholder=" " autocomplete="off"
                         value={ new_death.first_name.clone() }
-                        oninput={ handle_death_change.clone() }
-                    />
-                    <label for="first_name" class="form-label">
-                        { "First Name" }
-                    </label>
+                        oninput={ handle_death_change.clone() } />
+                    <label for="first_name" class="form-label">{ "First Name" }</label>
                 </div>
 
-                <div class="form">
-                    <input
-                        type="text"
-                        name="last_name"
-                        autocomplete="off"
-                        class="form-input"
-                        placeholder=""
+                <div class="form member-form-field">
+                    <input type="text" name="last_name" class="form-input"
+                        placeholder=" " autocomplete="off"
                         value={ new_death.last_name.clone() }
-                        oninput={ handle_death_change.clone() }
-                    />
-                    <label for="last_name" class="form-label">
-                        { "Last Name" }
-                    </label>
+                        oninput={ handle_death_change.clone() } />
+                    <label for="last_name" class="form-label">{ "Last Name" }</label>
                 </div>
 
                 <div class="form">

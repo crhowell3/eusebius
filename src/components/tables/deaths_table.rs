@@ -344,7 +344,7 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                             </tr>
                         </thead>
                         <tbody>
-                        { for (*deaths).iter().enumerate().map(|(idx, c)| {
+                        { for (*deaths).iter().enumerate().map(|(_, c)| {
                                 let death_id = c.id;
                                 let is_checked = (*selected).contains(&c.id);
                                 let on_row_toggle = on_row_toggle.clone();
