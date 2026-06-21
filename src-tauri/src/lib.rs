@@ -149,6 +149,7 @@ pub fn run() {
             get_deaths,
             get_baptisms,
             delete_baptisms,
+            delete_deaths,
             delete_families,
             delete_works,
             delete_children,
