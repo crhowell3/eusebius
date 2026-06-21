@@ -47,8 +47,6 @@ struct TabPaneProps {
     pub active_id: AttrValue,
 }
 
-// This component only re-renders when its own id or the active tab changes
-// — not when the form state changes
 #[function_component(TabPane)]
 fn tab_pane(props: &TabPaneProps) -> Html {
     let visible = props.id == props.active_id;

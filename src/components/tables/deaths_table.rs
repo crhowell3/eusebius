@@ -167,20 +167,16 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
     let all_checked =
         !(*deaths).is_empty() && (*deaths).iter().all(|c| (*selected).contains(&c.id));
 
-    let on_sort_first_name = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::FirstName)))
-    };
+    macro_rules! on_sort {
+        ($col:expr) => {{
+            let sort = sort.clone();
+            Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle($col)))
+        }};
+    }
 
-    let on_sort_last_name = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::LastName)))
-    };
-
-    let on_sort_death_date = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::LastName)))
-    };
+    let on_sort_first_name = on_sort!(SortColumn::FirstName);
+    let on_sort_last_name = on_sort!(SortColumn::LastName);
+    let on_sort_death_date = on_sort!(SortColumn::DateOfDeath);
 
     let on_row_toggle = {
         let selected = selected.clone();
@@ -235,7 +231,6 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
 
     html! {
         <section class="works-table-card">
-
             <div class="works-table-toolbar">
                 <div class="works-table-toolbar-left">
                     <h3 class="works-table-title">{ "Death Records" }</h3>
@@ -293,14 +288,15 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                             <line x1="9" y1="15" x2="15" y2="15"/>
                         </svg>
                         <span class="works-table-empty-text">{ "No records yet" }</span>
-                        <span class="works-table-empty-sub">{ "Add a work code using the form" }</span>
+                        <span class="works-table-empty-sub">{ "Add a record using the form" }</span>
                     </div>
                 } else {
-                    <table class="works-table">
+                    <table class="family-table">
                         <colgroup>
-                            <col class="works-col-check" />
-                            <col class="works-col-code" />
-                            <col class="works-col-description" />
+                            <col style="width: 44px" />
+                            <col style="width: 130px" />  // first name
+                            <col style="width: 130px" />  // last name
+                            <col style="width: 110px" />  // dod
                         </colgroup>
                         <thead>
                             <tr>
@@ -344,7 +340,7 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                             </tr>
                         </thead>
                         <tbody>
-                        { for (*deaths).iter().enumerate().map(|(_, c)| {
+                        { for sorted_deaths.iter().enumerate().map(|(_, c)| {
                                 let death_id = c.id;
                                 let is_checked = (*selected).contains(&c.id);
                                 let on_row_toggle = on_row_toggle.clone();

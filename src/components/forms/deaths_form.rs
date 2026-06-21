@@ -120,6 +120,8 @@ pub fn deaths_form(props: &DeathsFormProps) -> Html {
                     <label for="last_name" class="form-label">{ "Last Name" }</label>
                 </div>
 
+                <div class="member-form-section-label member-form-full">{ "Date" }</div>
+
                 <div class="form">
                     <input
                         type="text"

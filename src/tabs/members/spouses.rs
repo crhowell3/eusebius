@@ -8,8 +8,6 @@ use yew::prelude::*;
 use crate::utils::invoke;
 use shared::{Spouse, SpouseAction};
 
-// ── Invoke wrappers ───────────────────────────────────────────────────────────
-
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct GetSpouseArgs {
@@ -40,14 +38,10 @@ async fn save_spouse(spouse: Spouse) -> Result<(), String> {
     }
 }
 
-// ── Props ─────────────────────────────────────────────────────────────────────
-
 #[derive(Properties, PartialEq)]
 pub struct SpousesProps {
     pub selected_family_id: Option<String>,
 }
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 #[function_component(Spouses)]
 pub fn spouses(props: &SpousesProps) -> Html {
@@ -56,9 +50,8 @@ pub fn spouses(props: &SpousesProps) -> Html {
     let saving = use_state(|| false);
     let dirty = use_state(|| false);
     let error = use_state(|| None::<String>);
-    let is_existing = use_state(|| false); // true = record came from DB, false = new
+    let is_existing = use_state(|| false);
 
-    // ── Fetch spouse when selected family changes ─────────────────────────────
     {
         let spouse = spouse.dispatcher();
         let loading = loading.clone();
@@ -74,12 +67,10 @@ pub fn spouses(props: &SpousesProps) -> Html {
                     spawn_local(async move {
                         match fetch_spouse(&fid).await {
                             Ok(Some(existing)) => {
-                                // Pre-fill the form with the existing record
                                 spouse.dispatch(SpouseAction::Load(existing));
                                 is_existing.set(true);
                             }
                             Ok(None) => {
-                                // No record — reset to blank but set family_id
                                 spouse.dispatch(SpouseAction::Reset);
                                 spouse.dispatch(SpouseAction::SetField {
                                     name: "family_id".to_string(),
@@ -103,7 +94,6 @@ pub fn spouses(props: &SpousesProps) -> Html {
         });
     }
 
-    // ── Change handler ────────────────────────────────────────────────────────
     let handle_spouse_change = {
         let spouse = spouse.dispatcher();
         let dirty = dirty.clone();
@@ -119,7 +109,6 @@ pub fn spouses(props: &SpousesProps) -> Html {
         })
     };
 
-    // ── Bool change handler ───────────────────────────────────────────────────
     let handle_bool_change = |field: &'static str| {
         let spouse = spouse.dispatcher();
         let dirty = dirty.clone();
@@ -133,7 +122,6 @@ pub fn spouses(props: &SpousesProps) -> Html {
         })
     };
 
-    // ── Save ──────────────────────────────────────────────────────────────────
     let on_save = {
         let spouse = spouse.clone();
         let saving = saving.clone();
