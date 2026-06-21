@@ -2,6 +2,13 @@ pub mod cmd;
 use crate::cmd::*;
 use tauri::Manager;
 
+const DEATHS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS deaths (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    first_name      TEXT NOT NULL,
+    last_name       TEXT NOT NULL,
+    date_of_death   TEXT NOT NULL
+)";
+
 const WORKS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS works (
     work_code       TEXT PRIMARY KEY NOT NULL,
     description     TEXT NOT NULL
@@ -38,9 +45,9 @@ const FAMILIES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS families (
 )";
 
 const SPOUSES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS spouses (
-    family_id       TEXT PRIMARY KEY NOT NULL,
-    first_name      TEXT NOT NULL,
-    last_name       TEXT NOT NULL,
+    family_id               TEXT PRIMARY KEY NOT NULL,
+    first_name              TEXT NOT NULL,
+    last_name               TEXT NOT NULL,
     is_member               INTEGER NOT NULL DEFAULT 0,
     is_active               INTEGER NOT NULL DEFAULT 0,
     date_of_birth           TEXT,
@@ -94,6 +101,11 @@ pub fn run() {
                     .await
                     .expect("failed to enable foreign keys");
 
+                sqlx::query(DEATHS_INIT)
+                    .execute(&pool)
+                    .await
+                    .expect("Failed to initialize DEATHS schema");
+
                 sqlx::query(WORKS_INIT)
                     .execute(&pool)
                     .await
@@ -133,8 +145,11 @@ pub fn run() {
             save_spouse,
             add_baptism,
             add_family,
+            add_death,
+            get_deaths,
             get_baptisms,
             delete_baptisms,
+            delete_deaths,
             delete_families,
             delete_works,
             delete_children,
