@@ -3,8 +3,8 @@ use web_sys::window;
 use yew::prelude::*;
 
 use crate::tabs::{
-    About, BaptismsTabBody, DeathTabBody, MainMenu, MemberTabBody, Settings, ViewTables,
-    WorkTabBody,
+    About, BackupsTabBody, BaptismsTabBody, DeathTabBody, MainMenu, MemberTabBody, Settings,
+    ViewTables, WorkTabBody,
 };
 
 const COMMIT: &str = env!("GIT_COMMIT_HASH");
@@ -55,6 +55,7 @@ fn tab_pane(props: &TabPaneProps) -> Html {
         "update-works" => html! { <WorkTabBody /> },
         "update-deaths" => html! { <DeathTabBody /> },
         "update-baptisms" => html! { <BaptismsTabBody /> },
+        "perform-backup" => html! { <BackupsTabBody /> },
         "view-tables" => html! { <ViewTables /> },
         "settings" => html! { <Settings /> },
         "about" => html! { <About version={env!("CARGO_PKG_VERSION")} commit={COMMIT} /> },
