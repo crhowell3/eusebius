@@ -141,7 +141,7 @@ pub fn app() -> Html {
     html! {
         <div class="app-wrapper">
             <header class="app-header">
-                <h1 class="app-title">{"Washington Street Members Database"}</h1>
+                <h1 class="app-title">{"Eusebius Database Manager"}</h1>
                 <button class="theme-toggle" onclick={toggle_dark}>
                     {match &*dark {
                         true => "☀ Light",
