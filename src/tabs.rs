@@ -14,6 +14,6 @@ pub use baptisms::BaptismsTabBody;
 pub use deaths::DeathTabBody;
 pub use main_menu::MainMenu;
 pub use members::MemberTabBody;
-pub use settings::Settings;
+pub use settings::SettingsTabBody;
 pub use view_tables::ViewTables;
 pub use works::WorkTabBody;

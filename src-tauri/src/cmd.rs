@@ -1,6 +1,7 @@
 pub mod backup;
 pub mod db;
 pub mod general;
+pub mod settings;
 
 pub use backup::*;
 pub use db::DbState;
@@ -10,3 +11,4 @@ pub use db::{
     get_families, get_spouse, get_works, list_tables, save_children, save_spouse,
 };
 pub use general::exit_app;
+pub use settings::*;

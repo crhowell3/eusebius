@@ -1,5 +1,28 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
+pub struct AppSettings {
+    pub theme: String,
+    pub font_size: u32,
+    pub confirm_before_delete: bool,
+    pub rows_per_page: u32,
+    pub max_backups: u32,
+    pub backup_on_startup: bool,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            theme: "system".to_string(),
+            font_size: 16,
+            confirm_before_delete: true,
+            rows_per_page: 50,
+            max_backups: 10,
+            backup_on_startup: false,
+        }
+    }
+}
+
 pub enum GenericAction {
     SetField { name: String, value: String },
     SetBool { name: String, value: bool },

@@ -3,7 +3,7 @@ use web_sys::window;
 use yew::prelude::*;
 
 use crate::tabs::{
-    About, BackupsTabBody, BaptismsTabBody, DeathTabBody, MainMenu, MemberTabBody, Settings,
+    About, BackupsTabBody, BaptismsTabBody, DeathTabBody, MainMenu, MemberTabBody, SettingsTabBody,
     ViewTables, WorkTabBody,
 };
 
@@ -57,7 +57,7 @@ fn tab_pane(props: &TabPaneProps) -> Html {
         "update-baptisms" => html! { <BaptismsTabBody /> },
         "perform-backup" => html! { <BackupsTabBody /> },
         "view-tables" => html! { <ViewTables /> },
-        "settings" => html! { <Settings /> },
+        "settings" => html! { <SettingsTabBody /> },
         "about" => html! { <About version={env!("CARGO_PKG_VERSION")} commit={COMMIT} /> },
         _ => html! {},
     };
