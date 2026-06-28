@@ -23,16 +23,14 @@ async fn add_family(family: Family) -> Result<(), String> {
     }
 }
 
-fn is_valid_family_id(s: &str) -> bool {
-    s.len() == 4 && s.chars().all(|c| c.is_ascii_digit())
-}
-
 fn is_valid_mail_route(s: &str) -> bool {
     s.len() == 3 && s.chars().all(|c| c.is_ascii_digit())
 }
 
 fn is_valid_family(f: &Family) -> bool {
-    is_valid_family_id(&f.family_id) && is_valid_mail_route(&f.mail_route)
+    is_valid_mail_route(&f.mail_route)
+        && !f.first_name.trim().is_empty()
+        && !f.last_name.trim().is_empty()
 }
 
 #[derive(Properties, PartialEq)]
@@ -120,15 +118,6 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     // ── Section: Identity ─────────────────────────────────────────
                     <div class="member-form-section-label member-form-full">{ "Identity" }</div>
-
-                    <div class="form member-form-field">
-                        <input type="text" name="family_id" class="form-input"
-                            placeholder=" " pattern=r"\d{4}" autocomplete="off"
-                            minlength="4" maxlength="4" inputmode="numeric"
-                            value={ new_family.family_id.clone() }
-                            oninput={ handle_family_change.clone() } />
-                        <label for="family_id" class="form-label">{ "Family ID" }</label>
-                    </div>
 
                     <div class="form member-form-field">
                         <input type="text" name="mail_route" class="form-input"
