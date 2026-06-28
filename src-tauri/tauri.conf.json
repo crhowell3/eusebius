@@ -35,7 +35,7 @@
     },
     "plugins": {
         "sql": {
-            "preloadConnections": ["sqlite:wscoc.db"]
+            "preloadConnections": ["sqlite:eusebius.db"]
         }
     }
 }

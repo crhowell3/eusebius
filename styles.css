@@ -1423,6 +1423,7 @@ body {
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-sm);
     overflow: hidden;
+    min-height: 320px;
 }
 
 .member-form-body {

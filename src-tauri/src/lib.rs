@@ -83,7 +83,7 @@ pub fn run() {
         .setup(|app| {
             let app_dir = app.path().app_data_dir().expect("failed to get app dir");
             std::fs::create_dir_all(&app_dir).expect("failed to create app dir");
-            let db_path = format!("sqlite:{}/wscoc.db", app_dir.display());
+            let db_path = format!("sqlite:{}/eusebius.db", app_dir.display());
 
             let pool = tauri::async_runtime::block_on(async {
                 let pool = sqlx::sqlite::SqlitePoolOptions::new()

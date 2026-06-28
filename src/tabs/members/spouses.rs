@@ -190,7 +190,6 @@ pub fn spouses(props: &SpousesProps) -> Html {
                         { "Double-click a family record to load spouse data" }
                     </span>
                 </div>
-
             } else if *loading {
                 <div class="works-table-empty" style="padding: var(--space-8)">
                     <span class="works-table-empty-text">{ "Loading..." }</span>
