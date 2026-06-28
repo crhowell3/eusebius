@@ -120,23 +120,6 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
                     <div class="member-form-section-label member-form-full">{ "Identity" }</div>
 
                     <div class="form member-form-field">
-                        <input type="text" name="mail_route" class="form-input"
-                            placeholder=" " pattern=r"\d{3}" autocomplete="off"
-                            minlength="3" maxlength="3" inputmode="numeric"
-                            value={ new_family.mail_route.clone() }
-                            oninput={ handle_family_change.clone() } />
-                        <label for="mail_route" class="form-label">{ "Mail Route" }</label>
-                    </div>
-
-                    <div class="form member-form-field">
-                        <input type="text" name="date_of_birth" class="form-input"
-                            placeholder="YYYY-MM-DD" pattern=r"\d{4}-\d{2}-\d{2}"
-                            value={ new_family.date_of_birth.clone() }
-                            oninput={ handle_family_change.clone() } />
-                        <label for="date_of_birth" class="form-label">{ "Date of Birth" }</label>
-                    </div>
-
-                    <div class="form member-form-field">
                         <input type="text" name="first_name" class="form-input"
                             placeholder=" " autocomplete="off"
                             value={ new_family.first_name.clone() }
@@ -152,8 +135,23 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
                         <label for="last_name" class="form-label">{ "Last Name" }</label>
                     </div>
 
-                    // Empty cell to complete the row
-                    <div class="member-form-field" />
+                    <div class="form member-form-field">
+                        <input type="text" name="mail_route" class="form-input"
+                            placeholder="123" pattern=r"\d{3}" autocomplete="off"
+                            minlength="3" maxlength="3" inputmode="numeric"
+                            value={ new_family.mail_route.clone() }
+                            oninput={ handle_family_change.clone() } />
+                        <label for="mail_route" class="form-label">{ "Mail Route" }</label>
+                    </div>
+
+                    <div class="form member-form-field">
+                        <input type="text" name="date_of_birth" class="form-input"
+                            placeholder="YYYY-MM-DD" pattern=r"\d{4}-\d{2}-\d{2}"
+                            minlength="10" maxlength="10"
+                            value={ new_family.date_of_birth.clone() }
+                            oninput={ handle_family_change.clone() } />
+                        <label for="date_of_birth" class="form-label">{ "Date of Birth" }</label>
+                    </div>
 
                     // ── Section: Status ───────────────────────────────────────────
                     <div class="member-form-section-label member-form-full">{ "Status" }</div>
@@ -242,7 +240,9 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     <div class="form member-form-field">
                         <input type="text" name="anniversary_day" autocomplete="off"
-                            class="form-input" placeholder=" "
+                            class="form-input" placeholder="DD"
+                            minlength="2" maxlength="2"
+                            pattern=r"\d{2}"
                             value={ new_family.anniversary_day.clone() }
                             oninput={ handle_family_change.clone() } />
                         <label for="anniversary_day" class="form-label">{ "Day" }</label>
@@ -255,7 +255,8 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     <div class="form member-form-field">
                         <input type="text" name="home_phone" autocomplete="off"
-                            class="form-input" placeholder=" "
+                            class="form-input"
+                            placeholder="123-456-7890" pattern=r"\d{3}-\d{3}-\d{4}"
                             value={ new_family.home_phone.clone() }
                             oninput={ handle_family_change.clone() } />
                         <label for="home_phone" class="form-label">{ "Home Phone" }</label>
@@ -263,7 +264,8 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     <div class="form member-form-field">
                         <input type="text" name="cell_phone" autocomplete="off"
-                            class="form-input" placeholder=" "
+                            class="form-input"
+                            placeholder="123-456-7890" pattern=r"\d{3}-\d{3}-\d{4}"
                             value={ new_family.cell_phone.clone() }
                             oninput={ handle_family_change.clone() } />
                         <label for="cell_phone" class="form-label">{ "Cell Phone" }</label>
@@ -271,7 +273,8 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     <div class="form member-form-field">
                         <input type="text" name="work_phone" autocomplete="off"
-                            class="form-input" placeholder=" "
+                            class="form-input"
+                            placeholder="123-456-7890" pattern=r"\d{3}-\d{3}-\d{4}"
                             value={ new_family.work_phone.clone() }
                             oninput={ handle_family_change.clone() } />
                         <label for="work_phone" class="form-label">{ "Work Phone" }</label>
@@ -279,7 +282,9 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     <div class="form member-form-field member-form-full">
                         <input type="text" name="email_address" autocomplete="off"
-                            class="form-input" placeholder=" "
+                            class="form-input"
+                            placeholder="user@gmail.com"
+                            pattern=r"^[\w\-\.]+@([\w-]+\.)+[\w-]{2,}$"
                             value={ new_family.email_address.clone() }
                             oninput={ handle_family_change.clone() } />
                         <label for="email_address" class="form-label">{ "Email Address" }</label>
@@ -314,7 +319,10 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     <div class="form member-form-field">
                         <input type="text" name="zip" autocomplete="off"
-                            class="form-input" placeholder=" "
+                            class="form-input"
+                            placeholder="00000"
+                            minlength="5" maxlength="5" inputmode="numeric"
+                            pattern=r"\d{5}"
                             value={ new_family.zip.clone() }
                             oninput={ handle_family_change.clone() } />
                         <label for="zip" class="form-label">{ "ZIP" }</label>
