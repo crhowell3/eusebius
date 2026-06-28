@@ -310,10 +310,69 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
                     </div>
 
                     <div class="form member-form-field">
-                        <input type="text" name="state" autocomplete="off"
-                            class="form-input" placeholder=" "
-                            value={ new_family.state.clone() }
-                            oninput={ handle_family_change.clone() } />
+                        <select name="state" class="form-input form-select"
+                            oninput={ handle_family_change.clone() }>
+                            <option value="" disabled=true
+                                selected={ new_family.state.is_empty() }>
+                                { "" }
+                            </option>
+                            { for [
+                                ("AL", "Alabama"),
+                                ("AK", "Alaska"),
+                                ("AZ", "Arizona"),
+                                ("AR", "Arkansas"),
+                                ("CA", "California"),
+                                ("CO", "Colorado"),
+                                ("CT", "Connecticut"),
+                                ("DE", "Delaware"),
+                                ("DC", "District of Columbia"),
+                                ("FL", "Florida"),
+                                ("GA", "Georgia"),
+                                ("HI", "Hawaii"),
+                                ("ID", "Idaho"),
+                                ("IL", "Illinois"),
+                                ("IN", "Indiana"),
+                                ("IA", "Iowa"),
+                                ("KS", "Kansas"),
+                                ("KY", "Kentucky"),
+                                ("LA", "Louisiana"),
+                                ("ME", "Maine"),
+                                ("MD", "Maryland"),
+                                ("MA", "Massachusetts"),
+                                ("MI", "Michigan"),
+                                ("MN", "Minnesota"),
+                                ("MS", "Mississippi"),
+                                ("MO", "Missouri"),
+                                ("MT", "Montana"),
+                                ("NE", "Nebraska"),
+                                ("NV", "Nevada"),
+                                ("NH", "New Hampshire"),
+                                ("NJ", "New Jersey"),
+                                ("NM", "New Mexico"),
+                                ("NY", "New York"),
+                                ("NC", "North Carolina"),
+                                ("ND", "North Dakota"),
+                                ("OH", "Ohio"),
+                                ("OK", "Oklahoma"),
+                                ("OR", "Oregon"),
+                                ("PA", "Pennsylvania"),
+                                ("RI", "Rhode Island"),
+                                ("SC", "South Carolina"),
+                                ("SD", "South Dakota"),
+                                ("TN", "Tennessee"),
+                                ("TX", "Texas"),
+                                ("UT", "Utah"),
+                                ("VT", "Vermont"),
+                                ("VA", "Virginia"),
+                                ("WA", "Washington"),
+                                ("WV", "West Virginia"),
+                                ("WI", "Wisconsin"),
+                                ("WY", "Wyoming"),
+                            ].iter().map(|(val, label)| {
+                                let selected = new_family.state == *val;
+                                html! { <option value={*val} selected={selected}>{ label }</option> }
+                            })}
+                        </select>
                         <label for="state" class="form-label">{ "State" }</label>
                     </div>
 
