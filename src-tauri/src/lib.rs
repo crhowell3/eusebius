@@ -161,6 +161,9 @@ pub fn run() {
             exit_app,
             list_tables,
             save_children,
+            list_backups,
+            create_backup,
+            delete_backup,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

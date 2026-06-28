@@ -1,6 +1,8 @@
+pub mod backup;
 pub mod db;
 pub mod general;
 
+pub use backup::*;
 pub use db::DbState;
 pub use db::{
     add_baptism, add_child, add_death, add_family, add_work, delete_baptisms, delete_children,
