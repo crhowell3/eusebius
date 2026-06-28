@@ -234,7 +234,6 @@ pub fn works_table(props: &WorksTableProps) -> Html {
 
     html! {
         <section class="works-table-card">
-
             <div class="works-table-toolbar">
                 <div class="works-table-toolbar-left">
                     <h3 class="works-table-title">{ "Work Records" }</h3>
