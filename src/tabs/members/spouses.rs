@@ -169,7 +169,11 @@ pub fn spouses(props: &SpousesProps) -> Html {
                         { format!("Family {}", fid) }
                     </span>
                     if *is_existing {
-                        <span class="family-badge family-badge--yes">{ "Saved" }</span>
+                        if *dirty {
+                            <span class="children-badge children-badge--unsaved">{ "Unsaved" }</span>
+                        } else {
+                            <span class="family-badge family-badge--yes">{ "Saved" }</span>
+                        }
                     } else {
                         <span class="family-badge family-badge--no">{ "New" }</span>
                     }
