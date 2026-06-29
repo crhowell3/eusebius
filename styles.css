@@ -1318,6 +1318,12 @@ body {
     color: var(--text-tertiary);
 }
 
+.cell-empty {
+    color: var(--text-tertiary);
+    font-style: italic;
+    user-select: none;
+}
+
 /* =========================================================
    FAMILY TABLE (wide, fixed columns, horizontal scroll)
    ========================================================= */
