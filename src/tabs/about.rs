@@ -45,7 +45,13 @@ pub fn about(props: &AboutProps) -> Html {
                 <h1 class="about-title">{format!("eusebius {}", props.version)}</h1>
                 <div class="about-field">
                     <span class="about-label">{ "Author" }</span>
-                    <span class="about-value">{ "Cameron Howell" }</span>
+                    <span class="about-value">{ "Cameron Howell @" }
+                        <div>
+                            <text class="press-start-2p-regular">{ "OCTOBER" }
+                                <tspan style="color: #ef8354">{ "WARE" }</tspan>
+                            </text>
+                        </div>
+                    </span>
                 </div>
                 <div class="about-field">
                     <span class="about-label">{ "Commit" }</span>
