@@ -1,5 +1,6 @@
+use serde_wasm_bindgen::from_value;
 use wasm_bindgen::prelude::*;
-use web_sys::window;
+use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use crate::tabs::{
@@ -7,38 +8,16 @@ use crate::tabs::{
     ViewTables, WorkTabBody,
 };
 
+use crate::utils::{apply_theme, invoke};
+
+use shared::AppSettings;
+
 const COMMIT: &str = env!("GIT_COMMIT_HASH");
 
 #[derive(Clone, PartialEq)]
 pub struct Tab {
     pub id: String,
     pub label: String,
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
-    async fn invoke(cmd: &str, args: JsValue) -> JsValue;
-}
-
-fn local_storage_get(key: &str) -> Option<String> {
-    window()?.local_storage().ok()??.get_item(key).ok()?
-}
-
-fn local_storage_set(key: &str, value: &str) {
-    if let Some(Ok(Some(storage))) = window().map(|w| w.local_storage()) {
-        let _ = storage.set_item(key, value);
-    }
-}
-
-fn apply_theme(dark: bool) {
-    if let Some(win) = window() {
-        if let Some(doc) = win.document() {
-            if let Some(root) = doc.document_element() {
-                let _ = root.set_attribute("data-theme", if dark { "dark" } else { "light" });
-            }
-        }
-    }
 }
 
 #[derive(Properties, PartialEq)]
@@ -71,7 +50,6 @@ fn tab_pane(props: &TabPaneProps) -> Html {
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let dark = use_state(|| local_storage_get("theme").as_deref() == Some("dark"));
     let tabs = use_state(|| {
         vec![Tab {
             id: "main".to_string(),
@@ -80,25 +58,16 @@ pub fn app() -> Html {
     });
     let active_tab = use_state(|| "main".to_string());
 
-    let is_mounted = use_state(|| false);
-    {
-        let dark = dark.clone();
-        let is_mounted = is_mounted.clone();
-        use_effect_with(*dark, move |&is_dark| {
-            apply_theme(is_dark);
-            if *is_mounted {
-                local_storage_set("theme", if is_dark { "dark" } else { "light" });
-            } else {
-                is_mounted.set(true);
+    use_effect_with((), move |_| {
+        spawn_local(async move {
+            let result = invoke("load_settings", JsValue::UNDEFINED).await;
+            if let Ok(settings) = from_value::<AppSettings>(result) {
+                apply_theme(&settings.theme);
             }
-            || ()
         });
-    }
 
-    let toggle_dark = {
-        let dark = dark.clone();
-        Callback::from(move |_: MouseEvent| dark.set(!*dark))
-    };
+        || ()
+    });
 
     let open_tab = {
         let tabs = tabs.clone();
@@ -142,12 +111,6 @@ pub fn app() -> Html {
         <div class="app-wrapper">
             <header class="app-header">
                 <h1 class="app-title">{"Eusebius Database Manager"}</h1>
-                <button class="theme-toggle" onclick={toggle_dark}>
-                    {match &*dark {
-                        true => "☀ Light",
-                        false => "☾ Dark",
-                    }}
-                </button>
             </header>
 
             <div class="tab-bar">

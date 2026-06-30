@@ -135,6 +135,9 @@ pub fn run() {
             });
 
             app.manage(DbState(pool));
+
+            app.manage(load_initial_settings(app.handle()));
+
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())

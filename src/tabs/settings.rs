@@ -5,7 +5,7 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use crate::utils::invoke;
+use crate::utils::{apply_theme, invoke};
 use shared::AppSettings;
 
 async fn fetch_settings() -> Result<AppSettings, String> {
@@ -278,6 +278,7 @@ pub fn settings_tab_body() -> Html {
                                                     next.theme = val_str.clone();
                                                     settings.set(next);
                                                     dirty.set(true);
+                                                    apply_theme(&val_str);
                                                 }) }
                                             >
                                                 { label }
