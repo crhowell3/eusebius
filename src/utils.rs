@@ -1,5 +1,6 @@
 use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::*;
+use yew::prelude::{Html, html};
 
 #[wasm_bindgen]
 extern "C" {
@@ -35,4 +36,14 @@ pub fn apply_theme(theme: &str) {
     };
 
     let _ = root.set_attribute("data-theme", resolved);
+}
+
+pub fn octoberware() -> Html {
+    html! {
+        <div>
+            <text class="press-start-2p-regular">{ "OCTOBER" }
+                <tspan style="color: #ef8354">{ "WARE" }</tspan>
+            </text>
+        </div>
+    }
 }

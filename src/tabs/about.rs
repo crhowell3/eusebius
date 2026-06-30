@@ -3,7 +3,7 @@ use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use crate::components::Toast;
-use crate::utils::writeText;
+use crate::utils::{octoberware, writeText};
 
 #[derive(Properties, PartialEq)]
 pub struct AboutProps {
@@ -46,11 +46,7 @@ pub fn about(props: &AboutProps) -> Html {
                 <div class="about-field">
                     <span class="about-label">{ "Author" }</span>
                     <span class="about-value">{ "Cameron Howell @" }
-                        <div>
-                            <text class="press-start-2p-regular">{ "OCTOBER" }
-                                <tspan style="color: #ef8354">{ "WARE" }</tspan>
-                            </text>
-                        </div>
+                        { octoberware() }
                     </span>
                 </div>
                 <div class="about-field">
