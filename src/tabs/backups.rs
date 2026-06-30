@@ -56,6 +56,7 @@ async fn delete_backup(filename: String) -> Result<(), String> {
 #[function_component(BackupsTabBody)]
 pub fn backups_tab_body() -> Html {
     let backups = use_state(Vec::<BackupInfo>::new);
+    let app_data_dir = use_state(|| None::<String>);
     let loading = use_state(|| true);
     let creating = use_state(|| false);
     let error = use_state(|| None::<String>);
@@ -63,12 +64,17 @@ pub fn backups_tab_body() -> Html {
     let max_backups = use_state(|| 10u32);
 
     {
+        let app_data_dir = app_data_dir.clone();
         let backups = backups.clone();
         let loading = loading.clone();
         let error = error.clone();
 
         use_effect_with((), move |_| {
             spawn_local(async move {
+                let result = invoke("get_app_data_dir", JsValue::UNDEFINED).await;
+                if let Ok(path) = from_value::<String>(result) {
+                    app_data_dir.set(Some(path));
+                }
                 match fetch_backups().await {
                     Ok(data) => backups.set(data),
                     Err(e) => error.set(Some(e)),
@@ -164,7 +170,10 @@ pub fn backups_tab_body() -> Html {
                         <div>
                             <h2 class="backup-title">{ "Database Backups" }</h2>
                             <p class="backup-subtitle">
-                                { "Backups are stored in your app data directory." }
+                                { "Backups directory: " }
+                                if let Some(path) = (*app_data_dir).as_deref() {
+                                    <span>{ path.to_owned() + "/backups/" }</span>
+                                }
                             </p>
                         </div>
                     </div>

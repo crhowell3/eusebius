@@ -10,5 +10,5 @@ pub use db::{
     delete_deaths, delete_families, delete_works, get_baptisms, get_children_by_family, get_deaths,
     get_families, get_spouse, get_works, list_tables, save_children, save_spouse,
 };
-pub use general::exit_app;
+pub use general::*;
 pub use settings::*;

@@ -148,6 +148,7 @@ pub fn run() {
             add_death,
             get_deaths,
             get_baptisms,
+            get_app_data_dir,
             delete_baptisms,
             delete_deaths,
             delete_families,
