@@ -379,11 +379,20 @@ pub async fn get_families(db: State<'_, DbState>) -> Result<Vec<Family>, String>
 
 #[tauri::command]
 pub async fn add_family(db: State<'_, DbState>, family: Family) -> Result<(), String> {
+    let next_id: String =
+        sqlx::query_scalar::<_, Option<String>>("SELECT MAX(family_id) FROM families")
+            .fetch_one(&db.0)
+            .await
+            .map_err(|e| e.to_string())?
+            .and_then(|max| max.parse::<u32>().ok())
+            .map(|n| format!("{:04}", n + 1))
+            .unwrap_or_else(|| "0001".to_string());
+
     sqlx::query(
         "INSERT INTO families (family_id, mail_route, last_name, first_name, is_member, is_active, date_of_birth, anniversary_month, anniversary_day, home_phone, cell_phone, work_phone, address, city, state, zip, email_address, on_bulletin_email_list)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
-    .bind(&family.family_id)
+    .bind(&next_id)
     .bind(&family.mail_route)
     .bind(&family.last_name)
     .bind(&family.first_name)

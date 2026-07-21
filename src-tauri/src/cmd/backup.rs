@@ -11,7 +11,7 @@ fn backup_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 
 fn db_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    Ok(app_dir.join("wscoc.db"))
+    Ok(app_dir.join("eusebius.db"))
 }
 
 #[derive(serde::Serialize)]

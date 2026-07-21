@@ -83,7 +83,7 @@ pub fn run() {
         .setup(|app| {
             let app_dir = app.path().app_data_dir().expect("failed to get app dir");
             std::fs::create_dir_all(&app_dir).expect("failed to create app dir");
-            let db_path = format!("sqlite:{}/wscoc.db", app_dir.display());
+            let db_path = format!("sqlite:{}/eusebius.db", app_dir.display());
 
             let pool = tauri::async_runtime::block_on(async {
                 let pool = sqlx::sqlite::SqlitePoolOptions::new()
@@ -135,6 +135,9 @@ pub fn run() {
             });
 
             app.manage(DbState(pool));
+
+            app.manage(load_initial_settings(app.handle()));
+
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
@@ -148,6 +151,7 @@ pub fn run() {
             add_death,
             get_deaths,
             get_baptisms,
+            get_app_data_dir,
             delete_baptisms,
             delete_deaths,
             delete_families,

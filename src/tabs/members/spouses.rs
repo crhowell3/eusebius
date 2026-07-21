@@ -169,7 +169,11 @@ pub fn spouses(props: &SpousesProps) -> Html {
                         { format!("Family {}", fid) }
                     </span>
                     if *is_existing {
-                        <span class="family-badge family-badge--yes">{ "Saved" }</span>
+                        if *dirty {
+                            <span class="children-badge children-badge--unsaved">{ "Unsaved" }</span>
+                        } else {
+                            <span class="family-badge family-badge--yes">{ "Saved" }</span>
+                        }
                     } else {
                         <span class="family-badge family-badge--no">{ "New" }</span>
                     }
@@ -190,7 +194,6 @@ pub fn spouses(props: &SpousesProps) -> Html {
                         { "Double-click a family record to load spouse data" }
                     </span>
                 </div>
-
             } else if *loading {
                 <div class="works-table-empty" style="padding: var(--space-8)">
                     <span class="works-table-empty-text">{ "Loading..." }</span>

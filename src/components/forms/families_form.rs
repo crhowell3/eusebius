@@ -23,16 +23,14 @@ async fn add_family(family: Family) -> Result<(), String> {
     }
 }
 
-fn is_valid_family_id(s: &str) -> bool {
-    s.len() == 4 && s.chars().all(|c| c.is_ascii_digit())
-}
-
 fn is_valid_mail_route(s: &str) -> bool {
     s.len() == 3 && s.chars().all(|c| c.is_ascii_digit())
 }
 
 fn is_valid_family(f: &Family) -> bool {
-    is_valid_family_id(&f.family_id) && is_valid_mail_route(&f.mail_route)
+    is_valid_mail_route(&f.mail_route)
+        && !f.first_name.trim().is_empty()
+        && !f.last_name.trim().is_empty()
 }
 
 #[derive(Properties, PartialEq)]
@@ -122,32 +120,6 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
                     <div class="member-form-section-label member-form-full">{ "Identity" }</div>
 
                     <div class="form member-form-field">
-                        <input type="text" name="family_id" class="form-input"
-                            placeholder=" " pattern=r"\d{4}" autocomplete="off"
-                            minlength="4" maxlength="4" inputmode="numeric"
-                            value={ new_family.family_id.clone() }
-                            oninput={ handle_family_change.clone() } />
-                        <label for="family_id" class="form-label">{ "Family ID" }</label>
-                    </div>
-
-                    <div class="form member-form-field">
-                        <input type="text" name="mail_route" class="form-input"
-                            placeholder=" " pattern=r"\d{3}" autocomplete="off"
-                            minlength="3" maxlength="3" inputmode="numeric"
-                            value={ new_family.mail_route.clone() }
-                            oninput={ handle_family_change.clone() } />
-                        <label for="mail_route" class="form-label">{ "Mail Route" }</label>
-                    </div>
-
-                    <div class="form member-form-field">
-                        <input type="text" name="date_of_birth" class="form-input"
-                            placeholder="YYYY-MM-DD" pattern=r"\d{4}-\d{2}-\d{2}"
-                            value={ new_family.date_of_birth.clone() }
-                            oninput={ handle_family_change.clone() } />
-                        <label for="date_of_birth" class="form-label">{ "Date of Birth" }</label>
-                    </div>
-
-                    <div class="form member-form-field">
                         <input type="text" name="first_name" class="form-input"
                             placeholder=" " autocomplete="off"
                             value={ new_family.first_name.clone() }
@@ -163,8 +135,23 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
                         <label for="last_name" class="form-label">{ "Last Name" }</label>
                     </div>
 
-                    // Empty cell to complete the row
-                    <div class="member-form-field" />
+                    <div class="form member-form-field">
+                        <input type="text" name="mail_route" class="form-input"
+                            placeholder="123" pattern=r"\d{3}" autocomplete="off"
+                            minlength="3" maxlength="3" inputmode="numeric"
+                            value={ new_family.mail_route.clone() }
+                            oninput={ handle_family_change.clone() } />
+                        <label for="mail_route" class="form-label">{ "Mail Route" }</label>
+                    </div>
+
+                    <div class="form member-form-field">
+                        <input type="text" name="date_of_birth" class="form-input"
+                            placeholder="YYYY-MM-DD" pattern=r"\d{4}-\d{2}-\d{2}"
+                            minlength="10" maxlength="10"
+                            value={ new_family.date_of_birth.clone() }
+                            oninput={ handle_family_change.clone() } />
+                        <label for="date_of_birth" class="form-label">{ "Date of Birth" }</label>
+                    </div>
 
                     // ── Section: Status ───────────────────────────────────────────
                     <div class="member-form-section-label member-form-full">{ "Status" }</div>
@@ -253,7 +240,9 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     <div class="form member-form-field">
                         <input type="text" name="anniversary_day" autocomplete="off"
-                            class="form-input" placeholder=" "
+                            class="form-input" placeholder="DD"
+                            minlength="2" maxlength="2"
+                            pattern=r"\d{2}"
                             value={ new_family.anniversary_day.clone() }
                             oninput={ handle_family_change.clone() } />
                         <label for="anniversary_day" class="form-label">{ "Day" }</label>
@@ -266,7 +255,8 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     <div class="form member-form-field">
                         <input type="text" name="home_phone" autocomplete="off"
-                            class="form-input" placeholder=" "
+                            class="form-input"
+                            placeholder="123-456-7890" pattern=r"\d{3}-\d{3}-\d{4}"
                             value={ new_family.home_phone.clone() }
                             oninput={ handle_family_change.clone() } />
                         <label for="home_phone" class="form-label">{ "Home Phone" }</label>
@@ -274,7 +264,8 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     <div class="form member-form-field">
                         <input type="text" name="cell_phone" autocomplete="off"
-                            class="form-input" placeholder=" "
+                            class="form-input"
+                            placeholder="123-456-7890" pattern=r"\d{3}-\d{3}-\d{4}"
                             value={ new_family.cell_phone.clone() }
                             oninput={ handle_family_change.clone() } />
                         <label for="cell_phone" class="form-label">{ "Cell Phone" }</label>
@@ -282,7 +273,8 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     <div class="form member-form-field">
                         <input type="text" name="work_phone" autocomplete="off"
-                            class="form-input" placeholder=" "
+                            class="form-input"
+                            placeholder="123-456-7890" pattern=r"\d{3}-\d{3}-\d{4}"
                             value={ new_family.work_phone.clone() }
                             oninput={ handle_family_change.clone() } />
                         <label for="work_phone" class="form-label">{ "Work Phone" }</label>
@@ -290,7 +282,9 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     <div class="form member-form-field member-form-full">
                         <input type="text" name="email_address" autocomplete="off"
-                            class="form-input" placeholder=" "
+                            class="form-input"
+                            placeholder="user@gmail.com"
+                            pattern=r"^[\w\-\.]+@([\w-]+\.)+[\w-]{2,}$"
                             value={ new_family.email_address.clone() }
                             oninput={ handle_family_change.clone() } />
                         <label for="email_address" class="form-label">{ "Email Address" }</label>
@@ -316,16 +310,78 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
                     </div>
 
                     <div class="form member-form-field">
-                        <input type="text" name="state" autocomplete="off"
-                            class="form-input" placeholder=" "
-                            value={ new_family.state.clone() }
-                            oninput={ handle_family_change.clone() } />
+                        <select name="state" class="form-input form-select"
+                            oninput={ handle_family_change.clone() }>
+                            <option value="" disabled=true
+                                selected={ new_family.state.is_empty() }>
+                                { "" }
+                            </option>
+                            { for [
+                                ("AL", "Alabama"),
+                                ("AK", "Alaska"),
+                                ("AZ", "Arizona"),
+                                ("AR", "Arkansas"),
+                                ("CA", "California"),
+                                ("CO", "Colorado"),
+                                ("CT", "Connecticut"),
+                                ("DE", "Delaware"),
+                                ("DC", "District of Columbia"),
+                                ("FL", "Florida"),
+                                ("GA", "Georgia"),
+                                ("HI", "Hawaii"),
+                                ("ID", "Idaho"),
+                                ("IL", "Illinois"),
+                                ("IN", "Indiana"),
+                                ("IA", "Iowa"),
+                                ("KS", "Kansas"),
+                                ("KY", "Kentucky"),
+                                ("LA", "Louisiana"),
+                                ("ME", "Maine"),
+                                ("MD", "Maryland"),
+                                ("MA", "Massachusetts"),
+                                ("MI", "Michigan"),
+                                ("MN", "Minnesota"),
+                                ("MS", "Mississippi"),
+                                ("MO", "Missouri"),
+                                ("MT", "Montana"),
+                                ("NE", "Nebraska"),
+                                ("NV", "Nevada"),
+                                ("NH", "New Hampshire"),
+                                ("NJ", "New Jersey"),
+                                ("NM", "New Mexico"),
+                                ("NY", "New York"),
+                                ("NC", "North Carolina"),
+                                ("ND", "North Dakota"),
+                                ("OH", "Ohio"),
+                                ("OK", "Oklahoma"),
+                                ("OR", "Oregon"),
+                                ("PA", "Pennsylvania"),
+                                ("RI", "Rhode Island"),
+                                ("SC", "South Carolina"),
+                                ("SD", "South Dakota"),
+                                ("TN", "Tennessee"),
+                                ("TX", "Texas"),
+                                ("UT", "Utah"),
+                                ("VT", "Vermont"),
+                                ("VA", "Virginia"),
+                                ("WA", "Washington"),
+                                ("WV", "West Virginia"),
+                                ("WI", "Wisconsin"),
+                                ("WY", "Wyoming"),
+                            ].iter().map(|(val, label)| {
+                                let selected = new_family.state == *val;
+                                html! { <option value={*val} selected={selected}>{ label }</option> }
+                            })}
+                        </select>
                         <label for="state" class="form-label">{ "State" }</label>
                     </div>
 
                     <div class="form member-form-field">
                         <input type="text" name="zip" autocomplete="off"
-                            class="form-input" placeholder=" "
+                            class="form-input"
+                            placeholder="00000"
+                            minlength="5" maxlength="5" inputmode="numeric"
+                            pattern=r"\d{5}"
                             value={ new_family.zip.clone() }
                             oninput={ handle_family_change.clone() } />
                         <label for="zip" class="form-label">{ "ZIP" }</label>
