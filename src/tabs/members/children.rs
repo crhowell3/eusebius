@@ -202,6 +202,7 @@ pub fn children(props: &ChildrenTableProps) -> Html {
             <input
                 type="text"
                 class="cell-input"
+                placeholder="—"
                 value={ value.to_string() }
                 oninput={ oninput }
             />
@@ -261,12 +262,10 @@ pub fn children(props: &ChildrenTableProps) -> Html {
     let on_delete = {
         let selected = selected.clone();
         let children = children.clone();
-        let dirty = dirty.clone();
         Callback::from(move |_: MouseEvent| {
             let to_delete: Vec<i64> = (*selected).iter().cloned().collect();
             let selected = selected.clone();
             let children = children.clone();
-            let dirty = dirty.clone();
             spawn_local(async move {
                 match delete_children(to_delete).await {
                     Ok(_) => {
@@ -277,7 +276,6 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                             .collect();
                         children.set(remaining);
                         selected.set(HashSet::new());
-                        dirty.set(false);
                     }
                     Err(_e) => {
                         // TODO: proper error handling
@@ -308,7 +306,9 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                         </span>
                     }
                     if *dirty {
-                        <span class="works-table-selected-label">{ "Unsaved changes" }</span>
+                        <span class="children-badge children-badge--unsaved">{ "Unsaved" }</span>
+                    } else if has_family {
+                        <span class="children-badge children-badge--saved">{ "Saved" }</span>
                     }
                 </div>
                 <div class="works-table-toolbar-right">

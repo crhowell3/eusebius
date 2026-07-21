@@ -154,6 +154,14 @@ fn bool_cell(value: bool) -> Html {
     }
 }
 
+fn cell(value: &str) -> Html {
+    if value.is_empty() {
+        html! { <span class="cell-empty">{ "—" }</span> }
+    } else {
+        html! { { value } }
+    }
+}
+
 #[function_component(FamiliesTable)]
 pub fn families_table(props: &FamiliesTableProps) -> Html {
     let members = use_state(Vec::new);
@@ -510,16 +518,16 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                         <td class="works-table-td">{ bool_cell(m.is_member) }</td>
                                         <td class="works-table-td">{ bool_cell(m.is_active) }</td>
                                         <td class="works-table-td family-td-clip">{ &m.date_of_birth }</td>
-                                        <td class="works-table-td family-td-clip">{ &m.anniversary_month }</td>
-                                        <td class="works-table-td family-td-clip">{ &m.anniversary_day }</td>
-                                        <td class="works-table-td family-td-clip">{ &m.home_phone }</td>
-                                        <td class="works-table-td family-td-clip">{ &m.cell_phone }</td>
-                                        <td class="works-table-td family-td-clip">{ &m.work_phone }</td>
+                                        <td class="works-table-td family-td-clip">{ cell(&m.anniversary_month) }</td>
+                                        <td class="works-table-td family-td-clip">{ cell(&m.anniversary_day) }</td>
+                                        <td class="works-table-td family-td-clip">{ cell(&m.home_phone) }</td>
+                                        <td class="works-table-td family-td-clip">{ cell(&m.cell_phone) }</td>
+                                        <td class="works-table-td family-td-clip">{ cell(&m.work_phone) }</td>
                                         <td class="works-table-td family-td-clip">{ &m.address }</td>
                                         <td class="works-table-td family-td-clip">{ &m.city }</td>
                                         <td class="works-table-td family-td-clip">{ &m.state }</td>
                                         <td class="works-table-td family-td-clip">{ &m.zip }</td>
-                                        <td class="works-table-td family-td-clip">{ &m.email_address }</td>
+                                        <td class="works-table-td family-td-clip">{ cell(&m.email_address) }</td>
                                         <td class="works-table-td">{ bool_cell(m.on_bulletin_email_list) }</td>
                                     </tr>
                                 }
@@ -529,5 +537,26 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                 }
             </div>
         </section>
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_empty_cell() {
+        let value = "";
+        let expected_data = html! { <span class="cell-empty">{ "—" }</span> };
+
+        assert_eq!(cell(value), expected_data);
+    }
+
+    #[test]
+    fn test_populated_cell() {
+        let value = "some_data";
+        let expected_data = html! { { value } };
+
+        assert_eq!(cell(value), expected_data);
     }
 }

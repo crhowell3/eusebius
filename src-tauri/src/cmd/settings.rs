@@ -10,6 +10,23 @@ fn settings_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("settings.toml"))
 }
 
+pub fn load_initial_settings(app: &tauri::AppHandle) -> AppSettings {
+    let path = app
+        .path()
+        .app_data_dir()
+        .map(|d| d.join("settings.toml"))
+        .unwrap_or_default();
+
+    if path.exists() {
+        fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| toml::from_str::<AppSettings>(&s).ok())
+            .unwrap_or_default()
+    } else {
+        AppSettings::default()
+    }
+}
+
 #[tauri::command]
 pub fn load_settings(app: tauri::AppHandle) -> Result<AppSettings, String> {
     let path = settings_path(&app)?;

@@ -285,7 +285,6 @@ impl yew::prelude::Reducible for Family {
             GenericAction::SetField { name, value } => {
                 let mut updated = (*self).clone();
                 match name.as_str() {
-                    "family_id" => updated.family_id = value,
                     "mail_route" => updated.mail_route = value,
                     "last_name" => updated.last_name = value,
                     "first_name" => updated.first_name = value,

@@ -26,7 +26,6 @@ pub fn member_tab_body() -> Html {
         Callback::from(move |_: MouseEvent| form_open.set(false))
     };
 
-    // Clicking the backdrop closes the panel
     let on_backdrop_click = {
         let form_open = form_open.clone();
         Callback::from(move |_: MouseEvent| form_open.set(false))
