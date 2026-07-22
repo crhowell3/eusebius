@@ -1,12 +1,12 @@
 use serde::Serialize;
-use serde_wasm_bindgen::to_value;
-use wasm_bindgen::JsCast;
+use serde_wasm_bindgen::{from_value, to_value};
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use models::{GenericAction, Work};
+use models::{Category, GenericAction, Work};
 
 #[derive(Serialize)]
 struct AddWorkArgs {
@@ -32,6 +32,20 @@ pub struct WorksFormProps {
 pub fn works_form(props: &WorksFormProps) -> Html {
     let form_error = use_state(|| None::<String>);
     let new_work = use_reducer(Work::default);
+    let categories = use_state(Vec::<Category>::new);
+
+    {
+        let categories = categories.clone();
+        use_effect_with((), move |_| {
+            spawn_local(async move {
+                let result = invoke("get_categories", JsValue::UNDEFINED).await;
+                if let Ok(data) = from_value::<Vec<Category>>(result) {
+                    categories.set(data);
+                }
+            });
+            || ()
+        });
+    }
 
     let handle_work_change = {
         let new_work = new_work.dispatcher();
@@ -70,7 +84,7 @@ pub fn works_form(props: &WorksFormProps) -> Html {
         })
     };
 
-    let is_valid = !new_work.work_code.is_empty() && !new_work.description.is_empty();
+    let is_valid = !new_work.work_code.trim().is_empty() && !new_work.description.trim().is_empty();
 
     html! {
         <aside class="works-form-card">
@@ -99,6 +113,28 @@ pub fn works_form(props: &WorksFormProps) -> Html {
                         { err }
                     </div>
                 }
+
+                <div class="form">
+                    <select
+                        name="category_tag"
+                        class="form-input form-select"
+                        oninput={ handle_work_change.clone() }
+                    >
+                        <option value="" disabled=true
+                            selected={ new_work.category_tag.is_empty() }>
+                            { "" }
+                        </option>
+                        { for (*categories).iter().map(|c| {
+                            let selected = new_work.category_tag == c.tag;
+                            html! {
+                                <option value={ c.tag.clone() } selected={ selected }>
+                                    { format!("[{}] {}", c.tag, c.name) }
+                                </option>
+                            }
+                        }) }
+                    </select>
+                    <label for="category_tag" class="form-label">{ "Category" }</label>
+                </div>
 
                 <div class="form">
                     <input

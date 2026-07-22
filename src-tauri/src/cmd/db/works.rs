@@ -7,7 +7,7 @@ use super::DbState;
 
 #[tauri::command]
 pub async fn get_works(db: State<'_, DbState>) -> Result<Vec<Work>, String> {
-    sqlx::query_as::<_, Work>("SELECT work_code, description FROM works")
+    sqlx::query_as::<_, Work>("SELECT work_code, description, category_tag FROM works")
         .fetch_all(&db.0)
         .await
         .map_err(|e| e.to_string())
@@ -16,11 +16,12 @@ pub async fn get_works(db: State<'_, DbState>) -> Result<Vec<Work>, String> {
 #[tauri::command]
 pub async fn add_work(db: State<'_, DbState>, work: Work) -> Result<(), String> {
     sqlx::query(
-        "INSERT INTO works (work_code, description)
-        VALUES (?, ?)",
+        "INSERT INTO works (work_code, description, category_tag)
+        VALUES (?, ?, ?)",
     )
     .bind(&work.work_code)
     .bind(&work.description)
+    .bind(&work.category_tag)
     .execute(&db.0)
     .await
     .map_err(|e| e.to_string())?;

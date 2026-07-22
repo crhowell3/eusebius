@@ -297,6 +297,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                     <table class="works-table">
                         <colgroup>
                             <col class="works-col-check" />
+                            <col class="width: 120px" />
                             <col class="works-col-code" />
                             <col class="works-col-description" />
                         </colgroup>
@@ -309,6 +310,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                                         onchange={ on_select_all }
                                     />
                                 </th>
+                                <th class="works-table-th">{ "Category" }</th>
                                 <th class="works-table-th works-table-th--sortable"
                                     onclick={ on_sort_code }>
                                     <span class="works-table-th-inner">
@@ -355,6 +357,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                                                 }
                                             />
                                         </td>
+                                        <td class="works-table-td family-td-clip">{ &w.category_tag }</td>
                                         <td class="works-table-td">
                                             <span class="works-table-code-badge">
                                                 { &w.work_code }

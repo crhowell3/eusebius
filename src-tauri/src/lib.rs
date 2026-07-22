@@ -1,5 +1,7 @@
 pub mod cmd;
+use crate::cmd::db::*;
 use crate::cmd::*;
+
 use tauri::Manager;
 
 const DEATHS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS deaths (
@@ -11,7 +13,11 @@ const DEATHS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS deaths (
 
 const WORKS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS works (
     work_code       TEXT PRIMARY KEY NOT NULL,
-    description     TEXT NOT NULL
+    description     TEXT NOT NULL,
+    category_tag    TEXT NOT NULL DEFAULT 'MISC',
+    FOREIGN KEY (category_tag) REFERENCES categories(tag)
+        ON UPDATE CASCADE
+        ON DELETE SET DEFAULT
 )";
 
 const BAPTISMS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS baptisms (
@@ -77,11 +83,6 @@ const CHILDREN_INIT: &'static str = "CREATE TABLE IF NOT EXISTS children (
         ON UPDATE CASCADE
 )";
 
-const CATEGORIES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS categories (
-    tag         TEXT PRIMARY KEY NOT NULL,
-    name        TEXT NOT NULL
-)";
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -111,11 +112,6 @@ pub fn run() {
                     .await
                     .expect("Failed to initialize DEATHS schema");
 
-                sqlx::query(CATEGORIES_INIT)
-                    .execute(&pool)
-                    .await
-                    .expect("Failed to initialize CATEGORIES schema");
-
                 sqlx::query(WORKS_INIT)
                     .execute(&pool)
                     .await
@@ -140,6 +136,10 @@ pub fn run() {
                     .execute(&pool)
                     .await
                     .expect("failed to initialize CHILDREN schema");
+
+                setup_categories_table(&pool)
+                    .await
+                    .expect("failed to initialize CATEGORIES table");
 
                 pool
             });
@@ -181,6 +181,9 @@ pub fn run() {
             load_settings,
             save_settings,
             reset_settings,
+            get_categories,
+            add_category,
+            delete_categories,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,25 +1,21 @@
 use serde::Serialize;
-use serde_wasm_bindgen::to_value;
+use serde_wasm_bindgen::{from_value, to_value};
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{HtmlInputElement, HtmlTextAreaElement};
+use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use models::{Category, GenericAction};
+use models::{Category, CategoryAction};
 
-async fn add_category(category: Category) -> Result<(), String> {
+async fn add_category(name: String) -> Result<Category, String> {
     #[derive(Serialize)]
     struct Args {
-        category: Category,
+        name: String,
     }
-    let args = to_value(&Args { category }).map_err(|e| e.to_string())?;
+    let args = to_value(&Args { name }).map_err(|e| e.to_string())?;
     let result = invoke("add_category", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    from_value::<Category>(result).map_err(|e| e.to_string())
 }
 
 #[derive(Properties, PartialEq)]
@@ -32,18 +28,12 @@ pub fn categories_form(props: &CategoriesFormProps) -> Html {
     let form_error = use_state(|| None::<String>);
     let new_category = use_reducer(Category::default);
 
-    let handle_category_change = {
+    let on_name_input = {
         let new_category = new_category.dispatcher();
         Callback::from(move |e: InputEvent| {
-            let target = e.target().unwrap();
-            let (name, value) = if let Ok(input) = target.clone().dyn_into::<HtmlInputElement>() {
-                (input.name(), input.value())
-            } else if let Ok(textarea) = target.dyn_into::<HtmlTextAreaElement>() {
-                (textarea.name(), textarea.value())
-            } else {
-                return;
-            };
-            new_category.dispatch(GenericAction::SetField { name, value });
+            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+                new_category.dispatch(CategoryAction::SetName(input.value()));
+            }
         })
     };
 
@@ -52,14 +42,14 @@ pub fn categories_form(props: &CategoriesFormProps) -> Html {
         let form_error = form_error.clone();
         let on_category_added = props.on_category_added.clone();
         Callback::from(move |_: MouseEvent| {
-            let category = (*new_category).clone();
+            let name = new_category.name.clone();
             let form_error = form_error.clone();
             let new_category = new_category.dispatcher();
             let on_category_added = on_category_added.clone();
             spawn_local(async move {
-                match add_category(category).await {
+                match add_category(name).await {
                     Ok(_) => {
-                        new_category.dispatch(GenericAction::Reset);
+                        new_category.dispatch(CategoryAction::Reset);
                         form_error.set(None);
                         on_category_added.emit(());
                     }
@@ -69,7 +59,7 @@ pub fn categories_form(props: &CategoriesFormProps) -> Html {
         })
     };
 
-    let is_valid = !new_category.tag.is_empty() && !new_category.name.is_empty();
+    let is_valid = !new_category.name.trim().is_empty();
 
     html! {
         <aside class="works-form-card">
@@ -99,24 +89,7 @@ pub fn categories_form(props: &CategoriesFormProps) -> Html {
                     </div>
                 }
 
-                <div class="form">
-                    <input
-                        type="text"
-                        name="work_code"
-                        autocomplete="off"
-                        class="form-input"
-                        placeholder=""
-                        minlength="2"
-                        maxlength="2"
-                        value={ new_category.tag.clone() }
-                        oninput={ handle_category_change.clone() }
-                    />
-                    <label for="work_code" class="form-label">
-                        { "Tag" }
-                    </label>
-                </div>
-
-                <div class="works-form-hint">{ "n-character identifier (e.g. \"A1\")" }</div>
+                <div class="works-form-hint">{ "Tags are assigned automatically (A, B, C, ... AA, AB, ...)" }</div>
 
                 <div class="form">
                     <input
@@ -126,10 +99,10 @@ pub fn categories_form(props: &CategoriesFormProps) -> Html {
                         class="form-input"
                         placeholder=""
                         value={ new_category.name.clone() }
-                        oninput={ handle_category_change.clone() }
+                        oninput={ on_name_input }
                     />
                     <label for="name" class="form-label">
-                        { "Name" }
+                        { "Category Name" }
                     </label>
                 </div>
             </div>
@@ -140,7 +113,7 @@ pub fn categories_form(props: &CategoriesFormProps) -> Html {
                     onclick={ handle_submit }
                     disabled={ !is_valid }
                 >
-                    { "Add Record" }
+                    { "Add Category" }
                 </button>
             </div>
         </aside>

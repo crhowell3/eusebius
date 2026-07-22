@@ -47,6 +47,7 @@ pub struct TableInfo {
 pub struct Work {
     pub work_code: String,
     pub description: String,
+    pub category_tag: String,
 }
 
 impl yew::prelude::Reducible for Work {
@@ -59,6 +60,7 @@ impl yew::prelude::Reducible for Work {
                 match name.as_str() {
                     "work_code" => updated.work_code = value,
                     "description" => updated.description = value,
+                    "category_tag" => updated.category_tag = value,
                     _ => {}
                 }
                 std::rc::Rc::new(updated)
@@ -77,6 +79,7 @@ impl Default for Work {
         Self {
             work_code: String::new(),
             description: String::new(),
+            category_tag: String::new(),
         }
     }
 }
@@ -370,25 +373,21 @@ impl Category {
     }
 }
 
+pub enum CategoryAction {
+    SetName(String),
+    Reset,
+}
+
 impl yew::prelude::Reducible for Category {
-    type Action = GenericAction;
+    type Action = CategoryAction;
 
     fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
         match action {
-            GenericAction::SetField { name, value } => {
-                let mut updated = (*self).clone();
-                match name.as_str() {
-                    "tag" => updated.tag = value,
-                    "name" => updated.name = value,
-                    _ => {}
-                }
-                std::rc::Rc::new(updated)
-            }
-            GenericAction::SetBool { name: _, value: _ } => {
-                let updated = (*self).clone();
-                std::rc::Rc::new(updated)
-            }
-            GenericAction::Reset => std::rc::Rc::new(Category::default()),
+            CategoryAction::SetName(name) => std::rc::Rc::new(Self {
+                tag: self.tag.clone(),
+                name,
+            }),
+            CategoryAction::Reset => std::rc::Rc::new(Category::default()),
         }
     }
 }
