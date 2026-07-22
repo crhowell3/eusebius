@@ -2,7 +2,7 @@ use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{HtmlInputElement, HtmlTextAreaElement};
+use web_sys::{HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
 use crate::utils::invoke;
@@ -53,6 +53,8 @@ pub fn works_form(props: &WorksFormProps) -> Html {
             let target = e.target().unwrap();
             let (name, value) = if let Ok(input) = target.clone().dyn_into::<HtmlInputElement>() {
                 (input.name(), input.value())
+            } else if let Ok(select) = target.clone().dyn_into::<HtmlSelectElement>() {
+                (select.name(), select.value())
             } else if let Ok(textarea) = target.dyn_into::<HtmlTextAreaElement>() {
                 (textarea.name(), textarea.value())
             } else {
