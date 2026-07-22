@@ -1,7 +1,7 @@
 use yew::prelude::*;
 
-use crate::components::forms::WorksForm;
-use crate::components::tables::WorksTable;
+use crate::components::forms::{CategoriesForm, WorksForm};
+use crate::components::tables::{CategoriesTable, WorksTable};
 
 #[function_component(WorkTabBody)]
 pub fn work_tab_body() -> Html {
@@ -14,10 +14,23 @@ pub fn work_tab_body() -> Html {
         })
     };
 
+    let on_category_added = {
+        let refresh_trigger = refresh_trigger.clone();
+        Callback::from(move |_: ()| {
+            refresh_trigger.set(*refresh_trigger + 1);
+        })
+    };
+
     html! {
-        <div class="works-layout">
-            <WorksForm on_work_added={ on_work_added }/>
-            <WorksTable refresh_trigger={ *refresh_trigger } />
+        <div>
+            <div class="works-layout">
+                <CategoriesForm on_category_added={ on_category_added }/>
+                <CategoriesTable refresh_trigger={ *refresh_trigger } />
+            </div>
+            <div class="works-layout">
+                <WorksForm on_work_added={ on_work_added }/>
+                <WorksTable refresh_trigger={ *refresh_trigger } />
+            </div>
         </div>
     }
 }

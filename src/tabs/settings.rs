@@ -6,7 +6,7 @@ use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 use crate::utils::{apply_theme, invoke};
-use shared::AppSettings;
+use models::AppSettings;
 
 async fn fetch_settings() -> Result<AppSettings, String> {
     let result = invoke("load_settings", JsValue::UNDEFINED).await;

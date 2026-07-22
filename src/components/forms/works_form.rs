@@ -6,7 +6,7 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use shared::{GenericAction, Work};
+use models::{GenericAction, Work};
 
 #[derive(Serialize)]
 struct AddWorkArgs {

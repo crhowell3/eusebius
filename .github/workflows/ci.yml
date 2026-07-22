@@ -99,3 +99,12 @@ jobs:
               with:
                   sarif_file: rust-clippy-results.sarif
                   wait-for-processing: true
+
+    test:
+        name: Test
+        runs-on: ubuntu-latest
+        steps:
+            - run: cargo test
+            - run: |
+                  cd src-tauri
+                  cargo test

@@ -8,7 +8,7 @@ use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use shared::Child;
+use models::Child;
 
 #[derive(Properties, PartialEq)]
 pub struct ChildrenTableProps {

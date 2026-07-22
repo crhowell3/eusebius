@@ -6,7 +6,7 @@ use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use shared::{Spouse, SpouseAction};
+use models::{Spouse, SpouseAction};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

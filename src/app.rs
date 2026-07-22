@@ -10,7 +10,7 @@ use crate::tabs::{
 
 use crate::utils::{apply_theme, invoke};
 
-use shared::AppSettings;
+use models::AppSettings;
 
 const COMMIT: &str = env!("GIT_COMMIT_HASH");
 

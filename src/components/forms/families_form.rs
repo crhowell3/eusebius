@@ -6,7 +6,7 @@ use web_sys::{HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use shared::{Family, GenericAction};
+use models::{Family, GenericAction};
 
 #[derive(Serialize)]
 struct AddFamilyArgs {

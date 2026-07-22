@@ -77,6 +77,11 @@ const CHILDREN_INIT: &'static str = "CREATE TABLE IF NOT EXISTS children (
         ON UPDATE CASCADE
 )";
 
+const CATEGORIES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS categories (
+    tag         TEXT PRIMARY KEY NOT NULL,
+    name        TEXT NOT NULL
+)";
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -105,6 +110,11 @@ pub fn run() {
                     .execute(&pool)
                     .await
                     .expect("Failed to initialize DEATHS schema");
+
+                sqlx::query(CATEGORIES_INIT)
+                    .execute(&pool)
+                    .await
+                    .expect("Failed to initialize CATEGORIES schema");
 
                 sqlx::query(WORKS_INIT)
                     .execute(&pool)

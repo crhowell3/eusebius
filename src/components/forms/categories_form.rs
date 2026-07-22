@@ -6,16 +6,15 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use models::{Death, GenericAction};
+use models::{Category, GenericAction};
 
-#[derive(Serialize)]
-struct AddDeathArgs {
-    death: Death,
-}
-
-async fn add_death(death: Death) -> Result<(), String> {
-    let args = to_value(&AddDeathArgs { death }).map_err(|e| e.to_string())?;
-    let result = invoke("add_death", args).await;
+async fn add_category(category: Category) -> Result<(), String> {
+    #[derive(Serialize)]
+    struct Args {
+        category: Category,
+    }
+    let args = to_value(&Args { category }).map_err(|e| e.to_string())?;
+    let result = invoke("add_category", args).await;
     if result.is_undefined() || result.is_null() {
         Ok(())
     } else {
@@ -24,17 +23,17 @@ async fn add_death(death: Death) -> Result<(), String> {
 }
 
 #[derive(Properties, PartialEq)]
-pub struct DeathsFormProps {
-    pub on_death_added: Callback<()>,
+pub struct CategoriesFormProps {
+    pub on_category_added: Callback<()>,
 }
 
-#[function_component(DeathsForm)]
-pub fn deaths_form(props: &DeathsFormProps) -> Html {
+#[function_component(CategoriesForm)]
+pub fn categories_form(props: &CategoriesFormProps) -> Html {
     let form_error = use_state(|| None::<String>);
-    let new_death = use_reducer(Death::default);
+    let new_category = use_reducer(Category::default);
 
-    let handle_death_change = {
-        let new_death = new_death.dispatcher();
+    let handle_category_change = {
+        let new_category = new_category.dispatcher();
         Callback::from(move |e: InputEvent| {
             let target = e.target().unwrap();
             let (name, value) = if let Ok(input) = target.clone().dyn_into::<HtmlInputElement>() {
@@ -44,25 +43,25 @@ pub fn deaths_form(props: &DeathsFormProps) -> Html {
             } else {
                 return;
             };
-            new_death.dispatch(GenericAction::SetField { name, value });
+            new_category.dispatch(GenericAction::SetField { name, value });
         })
     };
 
     let handle_submit = {
-        let new_death = new_death.clone();
+        let new_category = new_category.clone();
         let form_error = form_error.clone();
-        let on_death_added = props.on_death_added.clone();
+        let on_category_added = props.on_category_added.clone();
         Callback::from(move |_: MouseEvent| {
-            let death = (*new_death).clone();
+            let category = (*new_category).clone();
             let form_error = form_error.clone();
-            let new_death = new_death.dispatcher();
-            let on_death_added = on_death_added.clone();
+            let new_category = new_category.dispatcher();
+            let on_category_added = on_category_added.clone();
             spawn_local(async move {
-                match add_death(death).await {
+                match add_category(category).await {
                     Ok(_) => {
-                        new_death.dispatch(GenericAction::Reset);
+                        new_category.dispatch(GenericAction::Reset);
                         form_error.set(None);
-                        on_death_added.emit(());
+                        on_category_added.emit(());
                     }
                     Err(e) => form_error.set(Some(e)),
                 }
@@ -70,9 +69,7 @@ pub fn deaths_form(props: &DeathsFormProps) -> Html {
         })
     };
 
-    let is_valid = !new_death.first_name.is_empty()
-        && !new_death.last_name.is_empty()
-        && !new_death.date_of_death.is_empty();
+    let is_valid = !new_category.tag.is_empty() && !new_category.name.is_empty();
 
     html! {
         <aside class="works-form-card">
@@ -85,7 +82,7 @@ pub fn deaths_form(props: &DeathsFormProps) -> Html {
                         <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
                 </span>
-                <h3 class="works-form-title">{ "New Death Record" }</h3>
+                <h3 class="works-form-title">{ "New Category" }</h3>
             </div>
 
             <div class="works-form-body">
@@ -102,38 +99,37 @@ pub fn deaths_form(props: &DeathsFormProps) -> Html {
                     </div>
                 }
 
-                <div class="member-form-section-label member-form-full">{ "Identity" }</div>
-
-                <div class="form member-form-field">
-                    <input type="text" name="first_name" class="form-input"
-                        placeholder=" " autocomplete="off"
-                        value={ new_death.first_name.clone() }
-                        oninput={ handle_death_change.clone() } />
-                    <label for="first_name" class="form-label">{ "First Name" }</label>
+                <div class="form">
+                    <input
+                        type="text"
+                        name="work_code"
+                        autocomplete="off"
+                        class="form-input"
+                        placeholder=""
+                        minlength="2"
+                        maxlength="2"
+                        value={ new_category.tag.clone() }
+                        oninput={ handle_category_change.clone() }
+                    />
+                    <label for="work_code" class="form-label">
+                        { "Tag" }
+                    </label>
                 </div>
 
-                <div class="form member-form-field">
-                    <input type="text" name="last_name" class="form-input"
-                        placeholder=" " autocomplete="off"
-                        value={ new_death.last_name.clone() }
-                        oninput={ handle_death_change.clone() } />
-                    <label for="last_name" class="form-label">{ "Last Name" }</label>
-                </div>
-
-                <div class="member-form-section-label member-form-full">{ "Date" }</div>
+                <div class="works-form-hint">{ "n-character identifier (e.g. \"A1\")" }</div>
 
                 <div class="form">
                     <input
                         type="text"
-                        name="date_of_death"
+                        name="name"
                         autocomplete="off"
                         class="form-input"
                         placeholder=""
-                        value={ new_death.date_of_death.clone() }
-                        oninput={ handle_death_change.clone() }
+                        value={ new_category.name.clone() }
+                        oninput={ handle_category_change.clone() }
                     />
-                    <label for="date_of_death" class="form-label">
-                        { "Date of Death" }
+                    <label for="name" class="form-label">
+                        { "Name" }
                     </label>
                 </div>
             </div>

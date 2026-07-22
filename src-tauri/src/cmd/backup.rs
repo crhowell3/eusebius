@@ -163,3 +163,33 @@ fn days_to_ymd(days: u64) -> (u64, u64, u64) {
     let year = if month <= 2 { y + 1 } else { y };
     (year, month, day)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_days_to_ymd() {
+        // Start of Unix Epoch time
+        let days = 0;
+        let (year, month, day) = days_to_ymd(days);
+
+        let (expected_year, expected_month, expected_day) = (1970, 1, 1);
+
+        assert_eq!(
+            (year, month, day),
+            (expected_year, expected_month, expected_day)
+        );
+    }
+
+    #[test]
+    fn test_format_timestamp() {
+        // Friday, July 14, 2017 at 2:40:00 AM UTC
+        let seconds = 1_500_000_000;
+        let formatted_timestamp = format_timestamp(seconds);
+
+        let expected_timestamp = "2017-07-14_02-40-00";
+
+        assert_eq!(formatted_timestamp, expected_timestamp);
+    }
+}

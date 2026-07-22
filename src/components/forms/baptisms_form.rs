@@ -6,7 +6,7 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use shared::{Baptism, GenericAction};
+use models::{Baptism, GenericAction};
 
 #[derive(Serialize)]
 struct AddBaptismArgs {

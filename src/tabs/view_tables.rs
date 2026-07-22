@@ -5,7 +5,7 @@ use serde_wasm_bindgen::from_value;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
-use shared::TableInfo;
+use models::TableInfo;
 
 #[function_component(ViewTables)]
 pub fn view_tables() -> Html {

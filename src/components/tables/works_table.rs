@@ -7,7 +7,7 @@ use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use shared::Work;
+use models::Work;
 
 #[derive(Properties, PartialEq)]
 pub struct WorksTableProps {

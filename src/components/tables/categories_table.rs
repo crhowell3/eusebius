@@ -7,27 +7,27 @@ use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use models::Death;
+use models::Category;
 
 #[derive(Properties, PartialEq)]
-pub struct DeathsTableProps {
+pub struct CategoriesTableProps {
     pub refresh_trigger: u32,
 }
 
-async fn fetch_deaths() -> Result<Vec<Death>, String> {
-    let result = invoke("get_deaths", JsValue::UNDEFINED).await;
-    from_value::<Vec<Death>>(result).map_err(|e| e.to_string())
+async fn fetch_categories() -> Result<Vec<Category>, String> {
+    let result = invoke("get_categories", JsValue::UNDEFINED).await;
+    from_value::<Vec<Category>>(result).map_err(|e| e.to_string())
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct DeleteDeathsArgs {
-    death_ids: Vec<i64>,
+struct DeleteCategoriesArgs {
+    work_codes: Vec<String>,
 }
 
-async fn delete_deaths(death_ids: Vec<i64>) -> Result<(), String> {
-    let args = to_value(&DeleteDeathsArgs { death_ids }).map_err(|e| e.to_string())?;
-    let result = invoke("delete_deaths", args).await;
+async fn delete_categories(work_codes: Vec<String>) -> Result<(), String> {
+    let args = to_value(&DeleteCategoriesArgs { work_codes }).map_err(|e| e.to_string())?;
+    let result = invoke("delete_categories", args).await;
     if result.is_undefined() || result.is_null() {
         Ok(())
     } else {
@@ -37,9 +37,8 @@ async fn delete_deaths(death_ids: Vec<i64>) -> Result<(), String> {
 
 #[derive(Clone, PartialEq)]
 enum SortColumn {
-    FirstName,
-    LastName,
-    DateOfDeath,
+    Tag,
+    Name,
 }
 
 #[derive(Clone, PartialEq)]
@@ -57,7 +56,7 @@ struct SortState {
 impl SortState {
     fn default() -> Self {
         Self {
-            column: SortColumn::FirstName,
+            column: SortColumn::Tag,
             dir: SortDir::Asc,
         }
     }
@@ -80,13 +79,12 @@ impl SortState {
     }
 }
 
-fn sort_deaths(deaths: &[Death], sort: &SortState) -> Vec<Death> {
-    let mut sorted = deaths.to_vec();
+fn sort_categories(works: &[Category], sort: &SortState) -> Vec<Category> {
+    let mut sorted = works.to_vec();
     sorted.sort_by(|a, b| {
         let ord = match sort.column {
-            SortColumn::FirstName => a.first_name.cmp(&b.first_name),
-            SortColumn::LastName => a.last_name.cmp(&b.last_name),
-            SortColumn::DateOfDeath => a.date_of_death.cmp(&b.date_of_death),
+            SortColumn::Tag => a.tag.cmp(&b.tag),
+            SortColumn::Name => a.name.cmp(&b.name),
         };
         match sort.dir {
             SortDir::Asc => ord,
@@ -128,16 +126,16 @@ fn sort_icon(active: bool, dir: &SortDir) -> Html {
     }
 }
 
-#[function_component(DeathsTable)]
-pub fn deaths_table(props: &DeathsTableProps) -> Html {
-    let deaths = use_state(Vec::<Death>::new);
+#[function_component(CategoriesTable)]
+pub fn categories_table(props: &CategoriesTableProps) -> Html {
+    let categories = use_state(Vec::new);
     let error = use_state(|| None::<String>);
-    let selected = use_state(HashSet::<i64>::new);
+    let selected = use_state(HashSet::<String>::new);
     let initial_load = use_state(|| true);
     let sort = use_state(SortState::default);
 
     {
-        let deaths = deaths.clone();
+        let categories = categories.clone();
         let error = error.clone();
         let selected = selected.clone();
         let initial_load = initial_load.clone();
@@ -145,9 +143,9 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
 
         use_effect_with(trigger, move |_| {
             spawn_local(async move {
-                match fetch_deaths().await {
+                match fetch_categories().await {
                     Ok(data) => {
-                        deaths.set(data);
+                        categories.set(data);
                         error.set(None);
                         selected.set(HashSet::new());
                     }
@@ -159,66 +157,69 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
         });
     }
 
-    let sorted_deaths = sort_deaths(&*deaths, &*sort);
+    let sorted_categories = sort_categories(&*categories, &*sort);
 
+    let all_checked = !sorted_categories.is_empty()
+        && sorted_categories
+            .iter()
+            .all(|w| (*selected).contains(&w.tag));
     let some_checked = !(*selected).is_empty();
     let selected_count = (*selected).len();
 
-    let all_checked =
-        !(*deaths).is_empty() && (*deaths).iter().all(|c| (*selected).contains(&c.id));
+    let on_sort_tag = {
+        let sort = sort.clone();
+        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::Tag)))
+    };
 
-    macro_rules! on_sort {
-        ($col:expr) => {{
-            let sort = sort.clone();
-            Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle($col)))
-        }};
-    }
-
-    let on_sort_first_name = on_sort!(SortColumn::FirstName);
-    let on_sort_last_name = on_sort!(SortColumn::LastName);
-    let on_sort_death_date = on_sort!(SortColumn::DateOfDeath);
+    let on_sort_name = {
+        let sort = sort.clone();
+        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::Name)))
+    };
 
     let on_row_toggle = {
         let selected = selected.clone();
-        Callback::from(move |death_id: i64| {
+        Callback::from(move |tag: String| {
             let mut next = (*selected).clone();
-            if next.contains(&death_id) {
-                next.remove(&death_id);
+            if next.contains(&tag) {
+                next.remove(&tag);
             } else {
-                next.insert(death_id);
+                next.insert(tag);
             }
             selected.set(next);
         })
     };
 
     let on_select_all = {
-        let sorted_deaths = sorted_deaths.clone();
+        let sorted_categories = sorted_categories.clone();
         let selected = selected.clone();
         Callback::from(move |_: Event| {
-            if sorted_deaths.iter().all(|w| (*selected).contains(&w.id)) {
+            if sorted_categories
+                .iter()
+                .all(|w| (*selected).contains(&w.tag))
+            {
                 selected.set(HashSet::new());
             } else {
-                selected.set(sorted_deaths.iter().map(|w| w.id.clone()).collect());
+                selected.set(sorted_categories.iter().map(|w| w.tag.clone()).collect());
             }
         })
     };
 
     let on_delete = {
         let selected = selected.clone();
-        let deaths = deaths.clone();
+        let categories = categories.clone();
         Callback::from(move |_: MouseEvent| {
-            let to_delete: Vec<i64> = (*selected).iter().cloned().collect();
+            let to_delete: Vec<String> = (*selected).iter().cloned().collect();
             let selected = selected.clone();
-            let deaths = deaths.clone();
+            let works = categories.clone();
             spawn_local(async move {
-                match delete_deaths(to_delete).await {
+                match delete_categories(to_delete).await {
                     Ok(_) => {
-                        let remaining = (*deaths)
+                        let remaining = (*works)
                             .iter()
-                            .filter(|w| !(*selected).contains(&w.id))
+                            .filter(|w| !(*selected).contains(&w.tag))
                             .cloned()
                             .collect();
-                        deaths.set(remaining);
+                        works.set(remaining);
                         selected.set(HashSet::new());
                     }
                     Err(_e) => {
@@ -233,11 +234,11 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
         <section class="works-table-card">
             <div class="works-table-toolbar">
                 <div class="works-table-toolbar-left">
-                    <h3 class="works-table-title">{ "Death Records" }</h3>
-                    if !sorted_deaths.is_empty() {
+                    <h3 class="works-table-title">{ "Categories" }</h3>
+                    if !sorted_categories.is_empty() {
                         <span class="works-table-count">
-                            { format!("{} record{}", sorted_deaths.len(),
-                                if sorted_deaths.len() == 1 { "" } else { "s" }) }
+                            { format!("{} record{}", sorted_categories.len(),
+                                if sorted_categories.len() == 1 { "" } else { "s" }) }
                         </span>
                     }
                 </div>
@@ -276,7 +277,7 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                     <div class="works-table-empty">
                         <span class="works-table-empty-text">{ "Loading..." }</span>
                     </div>
-                } else if sorted_deaths.is_empty() {
+                } else if sorted_categories.is_empty() {
                     <div class="works-table-empty">
                         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"
                             viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -288,15 +289,14 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                             <line x1="9" y1="15" x2="15" y2="15"/>
                         </svg>
                         <span class="works-table-empty-text">{ "No records yet" }</span>
-                        <span class="works-table-empty-sub">{ "Add a record using the form" }</span>
+                        <span class="works-table-empty-sub">{ "Add a work code using the form" }</span>
                     </div>
                 } else {
-                    <table class="family-table">
+                    <table class="works-table">
                         <colgroup>
-                            <col style="width: 44px" />
-                            <col style="width: 130px" />  // first name
-                            <col style="width: 130px" />  // last name
-                            <col style="width: 110px" />  // dod
+                            <col class="works-col-check" />
+                            <col class="works-col-code" />
+                            <col class="works-col-description" />
                         </colgroup>
                         <thead>
                             <tr>
@@ -308,31 +308,21 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                                     />
                                 </th>
                                 <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_first_name }>
+                                    onclick={ on_sort_tag }>
                                     <span class="works-table-th-inner">
-                                        { "First Name" }
+                                        { "Tag" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::FirstName,
+                                            (*sort).column == SortColumn::Tag,
                                             &(*sort).dir
                                         ) }
                                     </span>
                                 </th>
                                 <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_last_name }>
+                                    onclick={ on_sort_name }>
                                     <span class="works-table-th-inner">
-                                        { "Last Name" }
+                                        { "Name" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::LastName,
-                                            &(*sort).dir
-                                        ) }
-                                    </span>
-                                </th>
-                                <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_death_date }>
-                                    <span class="works-table-th-inner">
-                                        { "Date of Death" }
-                                        { sort_icon(
-                                            (*sort).column == SortColumn::DateOfDeath,
+                                            (*sort).column == SortColumn::Name,
                                             &(*sort).dir
                                         ) }
                                     </span>
@@ -340,9 +330,9 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                             </tr>
                         </thead>
                         <tbody>
-                        { for sorted_deaths.iter().enumerate().map(|(_, c)| {
-                                let death_id = c.id;
-                                let is_checked = (*selected).contains(&c.id);
+                            { for sorted_categories.iter().map(|w| {
+                                let tag = w.tag.clone();
+                                let is_checked = (*selected).contains(&w.tag);
                                 let on_row_toggle = on_row_toggle.clone();
                                 let row_class = if is_checked {
                                     "works-table-row works-table-row--selected"
@@ -351,19 +341,24 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                                 };
 
                                 html! {
-                                    <tr key={ c.id } class={ row_class }>
+                                    <tr key={ w.tag.clone() } class={ row_class }>
                                         <td class="works-table-td works-table-td--check">
                                             <input
                                                 type="checkbox"
                                                 checked={ is_checked }
-                                                onchange={ Callback::from(move |_: Event| {
-                                                    on_row_toggle.emit(death_id);
-                                                }) }
+                                                onchange={
+                                                    Callback::from(move |_: Event| {
+                                                        on_row_toggle.emit(tag.clone());
+                                                    })
+                                                }
                                             />
                                         </td>
-                                        <td class="works-table-td">{ &c.first_name }</td>
-                                        <td class="works-table-td">{ &c.last_name }</td>
-                                        <td class="works-table-td">{ &c.date_of_death }</td>
+                                        <td class="works-table-td">
+                                            <span class="works-table-code-badge">
+                                                { &w.tag }
+                                            </span>
+                                        </td>
+                                        <td class="works-table-td">{ &w.name }</td>
                                     </tr>
                                 }
                             }) }
