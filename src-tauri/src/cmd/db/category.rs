@@ -18,7 +18,14 @@ fn next_tag(existing_tags: &[String]) -> String {
 
     match max {
         None => "A".to_string(),
-        Some(tag) => increment_tag(tag),
+        Some(tag) => {
+            // Kinda janky but it works
+            if tag == "MISB" {
+                increment_tag("MISC")
+            } else {
+                increment_tag(tag)
+            }
+        }
     }
 }
 
@@ -149,5 +156,29 @@ mod tests {
         let new_tag = next_tag(&current_tag);
 
         assert_eq!(new_tag, "B");
+    }
+
+    #[test]
+    fn test_next_tag_z() {
+        let current_tag: Vec<String> = vec!["Z".to_string()];
+        let new_tag = next_tag(&current_tag);
+
+        assert_eq!(new_tag, "AA");
+    }
+
+    #[test]
+    fn test_next_tag_misc() {
+        let current_tag: Vec<String> = vec!["MISC".to_string()];
+        let new_tag = next_tag(&current_tag);
+
+        assert_eq!(new_tag, "A");
+    }
+
+    #[test]
+    fn test_next_tag_misb() {
+        let current_tag: Vec<String> = vec!["MISB".to_string()];
+        let new_tag = next_tag(&current_tag);
+
+        assert_eq!(new_tag, "MISD");
     }
 }
