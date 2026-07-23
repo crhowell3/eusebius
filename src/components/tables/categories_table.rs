@@ -5,14 +5,9 @@ use serde_wasm_bindgen::to_value;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
+use crate::components::icons::{EditBox, Eye, Save, TrashCan};
 use crate::utils::{fetch_records, invoke};
 use models::Category;
-
-#[derive(Properties, PartialEq)]
-pub struct CategoriesTableProps {
-    pub refresh_trigger: u32,
-    pub on_category_delete: Callback<()>,
-}
 
 async fn delete_categories(tags: Vec<String>) -> Result<(), String> {
     #[derive(Serialize)]
@@ -28,15 +23,45 @@ async fn delete_categories(tags: Vec<String>) -> Result<(), String> {
     }
 }
 
+async fn update_category(category: Category) -> Result<(), String> {
+    #[derive(Serialize)]
+    struct Args {
+        category: Category,
+    }
+    let args = to_value(&Args { category }).map_err(|e| e.to_string())?;
+    let result = invoke("update_category", args).await;
+    if result.is_undefined() || result.is_null() {
+        Ok(())
+    } else {
+        Err(result.as_string().unwrap_or("Unknown_error".to_string()))
+    }
+}
+
+#[derive(Clone, PartialEq)]
+enum TableMode {
+    View,
+    Edit,
+}
+
+#[derive(Properties, PartialEq)]
+pub struct CategoriesTableProps {
+    pub refresh_trigger: u32,
+    pub on_category_delete: Callback<()>,
+}
+
 #[function_component(CategoriesTable)]
 pub fn categories_table(props: &CategoriesTableProps) -> Html {
-    let categories = use_state(Vec::new);
+    let categories = use_state(Vec::<Category>::new);
+    let saved_categories = use_state(Vec::<Category>::new);
     let error = use_state(|| None::<String>);
     let selected = use_state(HashSet::<String>::new);
     let initial_load = use_state(|| true);
+    let mode = use_state(|| TableMode::View);
+    let saving = use_state(|| false);
 
     {
         let categories = categories.clone();
+        let saved_categories = saved_categories.clone();
         let error = error.clone();
         let selected = selected.clone();
         let initial_load = initial_load.clone();
@@ -46,6 +71,7 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
             spawn_local(async move {
                 match fetch_records::<Category>("get_categories").await {
                     Ok(data) => {
+                        saved_categories.set(data.clone());
                         categories.set(data);
                         error.set(None);
                         selected.set(HashSet::new());
@@ -58,8 +84,11 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
         });
     }
 
+    let dirty = *categories != *saved_categories;
     let some_checked = !(*selected).is_empty();
     let selected_count = (*selected).len();
+
+    let is_edit = *mode == TableMode::Edit;
 
     let can_delete = some_checked && !(*selected).contains("MISC");
     let all_checked = can_delete
@@ -67,6 +96,23 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
             .iter()
             .filter(|c| c.tag != "MISC")
             .all(|c| (*selected).contains(&c.tag));
+
+    let on_toggle_mode = {
+        let mode = mode.clone();
+        let categories = categories.clone();
+        let saved_categories = saved_categories.clone();
+        let selected = selected.clone();
+
+        Callback::from(move |_: MouseEvent| {
+            if *mode == TableMode::Edit {
+                categories.set((*saved_categories).clone());
+                selected.set(HashSet::new());
+                mode.set(TableMode::View);
+            } else {
+                mode.set(TableMode::Edit);
+            }
+        })
+    };
 
     let on_row_toggle = {
         let selected = selected.clone();
@@ -130,6 +176,57 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
         })
     };
 
+    let on_save_edits = {
+        let categories = categories.clone();
+        let saved_categories = saved_categories.clone();
+        let error = error.clone();
+        let saving = saving.clone();
+        let mode = mode.clone();
+        let saved_snapshot = (*saved_categories).clone();
+
+        Callback::from(move |_: MouseEvent| {
+            let changed: Vec<Category> = (*categories)
+                .iter()
+                .filter(|w| {
+                    !saved_snapshot
+                        .iter()
+                        .any(|s| s.tag == w.tag && s.name == w.name)
+                })
+                .cloned()
+                .collect();
+
+            if changed.is_empty() {
+                mode.set(TableMode::View);
+                return;
+            }
+
+            let categories = categories.clone();
+            let saved_categories = saved_categories.clone();
+            let error = error.clone();
+            let saving = saving.clone();
+            let mode = mode.clone();
+            saving.set(true);
+
+            spawn_local(async move {
+                let mut all_ok = true;
+                for categories in changed {
+                    if let Err(e) = update_category(categories).await {
+                        error.set(Some(e));
+                        all_ok = false;
+                        break;
+                    }
+                }
+
+                if all_ok {
+                    saved_categories.set((*categories).clone());
+                    error.set(None);
+                    mode.set(TableMode::View);
+                }
+                saving.set(false);
+            });
+        })
+    };
+
     html! {
         <section class="works-table-card">
             <div class="works-table-toolbar">
@@ -143,27 +240,40 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                     }
                 </div>
                 <div class="works-table-toolbar-right">
-                    if some_checked {
-                        <span class="works-table-selected-label">
-                            { format!("{} selected", selected_count) }
-                        </span>
+                    if is_edit {
+                        if some_checked {
+                            <span class="works-table-selected-label">
+                                { format!("{} selected", selected_count) }
+                            </span>
+                        }
+                        <button
+                            class="btn btn-ghost btn-sm danger"
+                            disabled={ !some_checked }
+                            onclick={ on_delete }
+                            title="Delete selected"
+                            aria-label="Delete selected"
+                        >
+                            <TrashCan />
+                            { " Delete"}
+                        </button>
+                        <button
+                            class="btn btn-ghost btn-sm"
+                            onclick={ on_save_edits }
+                            disabled={ *saving || !dirty }
+                        >
+                            <Save />
+                            { if *saving { " Saving..." } else { " Save" } }
+                        </button>
                     }
-                    <button
-                        class="btn btn-icon danger"
-                        disabled={ !can_delete }
-                        onclick={ on_delete }
-                        title="Delete selected"
-                        aria-label="Delete selected"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                            <path d="M10 11v6" />
-                            <path d="M14 11v6" />
-                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                        </svg>
+
+                    <button class="btn btn-ghost btn-sm" onclick={ on_toggle_mode }>
+                        if is_edit {
+                            <Eye />
+                            { " View" }
+                        } else {
+                            <EditBox />
+                            { " Edit" }
+                        }
                     </button>
                 </div>
             </div>

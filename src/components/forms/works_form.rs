@@ -121,7 +121,7 @@ pub fn works_form(props: &WorksFormProps) -> Html {
                     >
                         <option value="" disabled=true
                             selected={ new_work.category_tag.is_empty() }>
-                            { "" }
+                            { "Choose Category" }
                         </option>
                         { for (*categories).iter().map(|c| {
                             let selected = new_work.category_tag == c.tag;
