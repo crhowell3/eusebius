@@ -12,7 +12,7 @@ const DEATHS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS deaths (
 )";
 
 const WORKS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS works (
-    work_code       TEXT PRIMARY KEY NOT NULL,
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
     description     TEXT NOT NULL,
     category_tag    TEXT NOT NULL DEFAULT 'MISC',
     FOREIGN KEY (category_tag) REFERENCES categories(tag)

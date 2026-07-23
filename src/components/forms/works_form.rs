@@ -26,6 +26,7 @@ async fn add_work(work: Work) -> Result<(), String> {
 #[derive(Properties, PartialEq)]
 pub struct WorksFormProps {
     pub on_work_added: Callback<()>,
+    pub refresh_trigger: u32,
 }
 
 #[function_component(WorksForm)]
@@ -35,8 +36,9 @@ pub fn works_form(props: &WorksFormProps) -> Html {
     let categories = use_state(Vec::<Category>::new);
 
     {
+        let trigger = props.refresh_trigger;
         let categories = categories.clone();
-        use_effect_with((), move |_| {
+        use_effect_with(trigger, move |_| {
             spawn_local(async move {
                 let result = invoke("get_categories", JsValue::UNDEFINED).await;
                 if let Ok(data) = from_value::<Vec<Category>>(result) {
@@ -86,7 +88,7 @@ pub fn works_form(props: &WorksFormProps) -> Html {
         })
     };
 
-    let is_valid = !new_work.work_code.trim().is_empty() && !new_work.description.trim().is_empty();
+    let is_valid = !new_work.description.trim().is_empty();
 
     html! {
         <aside class="works-form-card">
@@ -137,25 +139,6 @@ pub fn works_form(props: &WorksFormProps) -> Html {
                     </select>
                     <label for="category_tag" class="form-label">{ "Category" }</label>
                 </div>
-
-                <div class="form">
-                    <input
-                        type="text"
-                        name="work_code"
-                        autocomplete="off"
-                        class="form-input"
-                        placeholder=""
-                        minlength="2"
-                        maxlength="2"
-                        value={ new_work.work_code.clone() }
-                        oninput={ handle_work_change.clone() }
-                    />
-                    <label for="work_code" class="form-label">
-                        { "Work Code" }
-                    </label>
-                </div>
-
-                <div class="works-form-hint">{ "2-character identifier (e.g. \"A1\")" }</div>
 
                 <div class="form">
                     <input

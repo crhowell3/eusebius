@@ -7,7 +7,7 @@ use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use models::Work;
+use models::{Category, Work};
 
 #[derive(Properties, PartialEq)]
 pub struct WorksTableProps {
@@ -19,14 +19,13 @@ async fn fetch_works() -> Result<Vec<Work>, String> {
     from_value::<Vec<Work>>(result).map_err(|e| e.to_string())
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct DeleteWorksArgs {
-    work_codes: Vec<String>,
-}
-
-async fn delete_works(work_codes: Vec<String>) -> Result<(), String> {
-    let args = to_value(&DeleteWorksArgs { work_codes }).map_err(|e| e.to_string())?;
+async fn delete_works(work_ids: Vec<i64>) -> Result<(), String> {
+    #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Args {
+        work_ids: Vec<i64>,
+    }
+    let args = to_value(&Args { work_ids }).map_err(|e| e.to_string())?;
     let result = invoke("delete_works", args).await;
     if result.is_undefined() || result.is_null() {
         Ok(())
@@ -37,7 +36,6 @@ async fn delete_works(work_codes: Vec<String>) -> Result<(), String> {
 
 #[derive(Clone, PartialEq)]
 enum SortColumn {
-    Code,
     Description,
 }
 
@@ -56,7 +54,7 @@ struct SortState {
 impl SortState {
     fn default() -> Self {
         Self {
-            column: SortColumn::Code,
+            column: SortColumn::Description,
             dir: SortDir::Asc,
         }
     }
@@ -83,7 +81,6 @@ fn sort_works(works: &[Work], sort: &SortState) -> Vec<Work> {
     let mut sorted = works.to_vec();
     sorted.sort_by(|a, b| {
         let ord = match sort.column {
-            SortColumn::Code => a.work_code.cmp(&b.work_code),
             SortColumn::Description => a.description.cmp(&b.description),
         };
         match sort.dir {
@@ -128,11 +125,25 @@ fn sort_icon(active: bool, dir: &SortDir) -> Html {
 
 #[function_component(WorksTable)]
 pub fn works_table(props: &WorksTableProps) -> Html {
-    let works = use_state(Vec::new);
+    let works = use_state(Vec::<Work>::new);
     let error = use_state(|| None::<String>);
-    let selected = use_state(HashSet::<String>::new);
+    let selected = use_state(HashSet::<i64>::new);
     let initial_load = use_state(|| true);
     let sort = use_state(SortState::default);
+    let categories = use_state(Vec::<Category>::new);
+
+    {
+        let categories = categories.clone();
+        use_effect_with((), move |_| {
+            spawn_local(async move {
+                let result = invoke("get_categories", JsValue::UNDEFINED).await;
+                if let Ok(data) = from_value::<Vec<Category>>(result) {
+                    categories.set(data);
+                }
+            });
+            || ()
+        });
+    }
 
     {
         let works = works.clone();
@@ -159,17 +170,10 @@ pub fn works_table(props: &WorksTableProps) -> Html {
 
     let sorted_works = sort_works(&*works, &*sort);
 
-    let all_checked = !sorted_works.is_empty()
-        && sorted_works
-            .iter()
-            .all(|w| (*selected).contains(&w.work_code));
+    let all_checked =
+        !sorted_works.is_empty() && sorted_works.iter().all(|w| (*selected).contains(&w.id));
     let some_checked = !(*selected).is_empty();
     let selected_count = (*selected).len();
-
-    let on_sort_code = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::Code)))
-    };
 
     let on_sort_description = {
         let sort = sort.clone();
@@ -180,12 +184,12 @@ pub fn works_table(props: &WorksTableProps) -> Html {
 
     let on_row_toggle = {
         let selected = selected.clone();
-        Callback::from(move |work_code: String| {
+        Callback::from(move |id: i64| {
             let mut next = (*selected).clone();
-            if next.contains(&work_code) {
-                next.remove(&work_code);
+            if next.contains(&id) {
+                next.remove(&id);
             } else {
-                next.insert(work_code);
+                next.insert(id);
             }
             selected.set(next);
         })
@@ -195,13 +199,10 @@ pub fn works_table(props: &WorksTableProps) -> Html {
         let sorted_works = sorted_works.clone();
         let selected = selected.clone();
         Callback::from(move |_: Event| {
-            if sorted_works
-                .iter()
-                .all(|w| (*selected).contains(&w.work_code))
-            {
+            if sorted_works.iter().all(|w| (*selected).contains(&w.id)) {
                 selected.set(HashSet::new());
             } else {
-                selected.set(sorted_works.iter().map(|w| w.work_code.clone()).collect());
+                selected.set(sorted_works.iter().map(|w| w.id.clone()).collect());
             }
         })
     };
@@ -210,7 +211,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
         let selected = selected.clone();
         let works = works.clone();
         Callback::from(move |_: MouseEvent| {
-            let to_delete: Vec<String> = (*selected).iter().cloned().collect();
+            let to_delete: Vec<i64> = (*selected).iter().cloned().collect();
             let selected = selected.clone();
             let works = works.clone();
             spawn_local(async move {
@@ -218,7 +219,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                     Ok(_) => {
                         let remaining = (*works)
                             .iter()
-                            .filter(|w| !(*selected).contains(&w.work_code))
+                            .filter(|w| !(*selected).contains(&w.id))
                             .cloned()
                             .collect();
                         works.set(remaining);
@@ -291,15 +292,14 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                             <line x1="9" y1="15" x2="15" y2="15"/>
                         </svg>
                         <span class="works-table-empty-text">{ "No records yet" }</span>
-                        <span class="works-table-empty-sub">{ "Add a work code using the form" }</span>
+                        <span class="works-table-empty-sub">{ "Add a work record using the form" }</span>
                     </div>
                 } else {
-                    <table class="works-table">
+                    <table class="family-table">
                         <colgroup>
-                            <col class="works-col-check" />
+                            <col class="width: 44px" />
                             <col class="width: 120px" />
-                            <col class="works-col-code" />
-                            <col class="works-col-description" />
+                            <col class="width: 300px" />
                         </colgroup>
                         <thead>
                             <tr>
@@ -311,16 +311,6 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                                     />
                                 </th>
                                 <th class="works-table-th">{ "Category" }</th>
-                                <th class="works-table-th works-table-th--sortable"
-                                    onclick={ on_sort_code }>
-                                    <span class="works-table-th-inner">
-                                        { "Code" }
-                                        { sort_icon(
-                                            (*sort).column == SortColumn::Code,
-                                            &(*sort).dir
-                                        ) }
-                                    </span>
-                                </th>
                                 <th class="works-table-th works-table-th--sortable"
                                     onclick={ on_sort_description }>
                                     <span class="works-table-th-inner">
@@ -335,8 +325,8 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                         </thead>
                         <tbody>
                             { for sorted_works.iter().map(|w| {
-                                let work_code = w.work_code.clone();
-                                let is_checked = (*selected).contains(&w.work_code);
+                                let id = w.id.clone();
+                                let is_checked = (*selected).contains(&w.id);
                                 let on_row_toggle = on_row_toggle.clone();
                                 let row_class = if is_checked {
                                     "works-table-row works-table-row--selected"
@@ -345,23 +335,20 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                                 };
 
                                 html! {
-                                    <tr key={ w.work_code.clone() } class={ row_class }>
+                                    <tr key={ w.id.clone() } class={ row_class }>
                                         <td class="works-table-td works-table-td--check">
                                             <input
                                                 type="checkbox"
                                                 checked={ is_checked }
                                                 onchange={
                                                     Callback::from(move |_: Event| {
-                                                        on_row_toggle.emit(work_code.clone());
+                                                        on_row_toggle.emit(id.clone());
                                                     })
                                                 }
                                             />
                                         </td>
-                                        <td class="works-table-td family-td-clip">{ &w.category_tag }</td>
-                                        <td class="works-table-td">
-                                            <span class="works-table-code-badge">
-                                                { &w.work_code }
-                                            </span>
+                                        <td class="works-table-td family-td-clip">
+                                            { format!("[{}] {}", &w.category_tag, &w.category_name) }
                                         </td>
                                         <td class="works-table-td">{ &w.description }</td>
                                     </tr>

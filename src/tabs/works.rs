@@ -28,7 +28,7 @@ pub fn work_tab_body() -> Html {
                 <CategoriesTable refresh_trigger={ *refresh_trigger } />
             </div>
             <div class="works-layout">
-                <WorksForm on_work_added={ on_work_added }/>
+                <WorksForm refresh_trigger={ *refresh_trigger } on_work_added={ on_work_added }/>
                 <WorksTable refresh_trigger={ *refresh_trigger } />
             </div>
         </div>

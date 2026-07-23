@@ -42,12 +42,13 @@ pub struct TableInfo {
     pub path: String,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Work {
-    pub work_code: String,
+    pub id: i64,
     pub description: String,
     pub category_tag: String,
+    pub category_name: String,
 }
 
 impl yew::prelude::Reducible for Work {
@@ -58,7 +59,6 @@ impl yew::prelude::Reducible for Work {
             GenericAction::SetField { name, value } => {
                 let mut updated = (*self).clone();
                 match name.as_str() {
-                    "work_code" => updated.work_code = value,
                     "description" => updated.description = value,
                     "category_tag" => updated.category_tag = value,
                     _ => {}
@@ -70,16 +70,6 @@ impl yew::prelude::Reducible for Work {
                 std::rc::Rc::new(updated)
             }
             GenericAction::Reset => std::rc::Rc::new(Work::default()),
-        }
-    }
-}
-
-impl Default for Work {
-    fn default() -> Self {
-        Self {
-            work_code: String::new(),
-            description: String::new(),
-            category_tag: String::new(),
         }
     }
 }
