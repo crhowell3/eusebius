@@ -88,7 +88,8 @@ pub fn works_table(props: &WorksTableProps) -> Html {
     {
         let categories = categories.clone();
         let error = error.clone();
-        use_effect_with((), move |_| {
+        let trigger = props.refresh_trigger;
+        use_effect_with(trigger, move |_| {
             spawn_local(async move {
                 match fetch_records::<Category>("get_categories").await {
                     Ok(data) => {
@@ -210,17 +211,28 @@ pub fn works_table(props: &WorksTableProps) -> Html {
 
     let on_field_change = {
         let works = works.clone();
+        let categories = categories.clone();
 
         Callback::from(move |(id, field, value): (i64, &'static str, String)| {
-            let mut next = (*works).clone();
-            if let Some(w) = next.iter_mut().find(|w| w.id == id) {
-                match field {
-                    "description" => w.description = value,
-                    "category_tag" => w.category_tag = value,
-                    _ => {}
+            works.set({
+                let mut next = (*works).clone();
+                if let Some(w) = next.iter_mut().find(|w| w.id == id) {
+                    match field {
+                        "description" => w.description = value,
+                        "category_tag" => {
+                            let name = (*categories)
+                                .iter()
+                                .find(|c| c.tag == value)
+                                .map(|c| c.name.clone())
+                                .unwrap_or_default();
+                            w.category_tag = value;
+                            w.category_name = name;
+                        }
+                        _ => {}
+                    }
                 }
-            }
-            works.set(next);
+                next
+            });
         })
     };
 
@@ -254,6 +266,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
         let works = works.clone();
         let saved_works = saved_works.clone();
         let error = error.clone();
+        let mode = mode.clone();
 
         Callback::from(move |_: MouseEvent| {
             let to_delete: Vec<i64> = (*selected).iter().cloned().collect();
@@ -262,6 +275,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
             let works = works.clone();
             let saved_works = saved_works.clone();
             let error = error.clone();
+            let mode = mode.clone();
 
             spawn_local(async move {
                 #[derive(Serialize)]
@@ -295,6 +309,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                         saved_works.set(remaining);
                         selected.set(HashSet::new());
                         error.set(None);
+                        mode.set(TableMode::View);
                     }
                     Err(e) => error.set(Some(e)),
                 }
@@ -307,7 +322,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
             <section class="works-table-card">
                 <div class="works-table-toolbar">
                     <div class="works-table-toolbar-left">
-                        <h3 class="works-table-title">{ "Work Records" }</h3>
+                        <h3 class="works-table-title">{ "Works" }</h3>
                         if !sorted_works.is_empty() {
                             <span class="works-table-count">
                                 { format!("{} record{}", sorted_works.len(),
@@ -320,8 +335,8 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                                 { "Edit Mode" }
                             </span>
                             if dirty {
-                                <span class="works-table-selected-label">
-                                    { "Unsaved changes" }
+                                <span class="works-mode-badge">
+                                    { "Unsaved Changes" }
                                 </span>
                             }
                         }
@@ -346,7 +361,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                             <button
                                 class="btn btn-ghost btn-sm"
                                 onclick={ on_save_edits }
-                                disabled={ *saving }
+                                disabled={ *saving || !dirty }
                             >
                                 <Save />
                                 { if *saving { " Saving..." } else { " Save" } }
@@ -391,15 +406,13 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                     } else {
                         <table class="family-table">
                             <colgroup>
-                                if is_edit {
-                                    <col class="width: 44px" />
-                                }
-                                <col class="width: 120px" />
-                                <col class="width: 300px" />
+                                { if is_edit { html! { <col style="width: 44px" /> } } else { html! {} } }
+                                <col style="width: 120px" />
+                                <col style="width: 300px" />
                             </colgroup>
                             <thead>
                                 <tr>
-                                    if is_edit {
+                                    { if is_edit { html! {
                                         <th class="works-table-th works-table-th--check">
                                             <input
                                                 type="checkbox"
@@ -407,13 +420,13 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                                                 onchange={ on_select_all }
                                             />
                                         </th>
-                                    }
+                                    } } else { html! {} } }
                                     <th class="works-table-th works-table-th--sortable"
                                         onclick={ on_sort_category }>
                                         <span class="works-table-th-inner">
                                             { "Category" }
                                             { sort_icon(
-                                                (*sort).column == SortColumn::Description,
+                                                (*sort).column == SortColumn::Category,
                                                 &(*sort).dir
                                             ) }
                                         </span>
@@ -432,9 +445,33 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                             </thead>
                             <tbody>
                                 { for sorted_works.iter().map(|w| {
-                                    let id = w.id.clone();
+                                    let id = w.id;
                                     let is_checked = (*selected).contains(&w.id);
                                     let on_row_toggle = on_row_toggle.clone();
+                                    let on_field_change = on_field_change.clone();
+
+                                    let on_change_category = {
+                                        let on_field_change = on_field_change.clone();
+                                        Callback::from(move |e: InputEvent| {
+                                            use wasm_bindgen::JsCast;
+                                            use web_sys::HtmlSelectElement;
+                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlSelectElement>() {
+                                                on_field_change.emit((id, "category_tag", input.value()));
+                                            }
+                                        })
+                                    };
+
+                                    let on_change_description = {
+                                        let on_field_change = on_field_change.clone();
+                                        Callback::from(move |e: InputEvent| {
+                                            use wasm_bindgen::JsCast;
+                                            use web_sys::HtmlInputElement;
+                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+                                                on_field_change.emit((id, "description", input.value()));
+                                            }
+                                        })
+                                    };
+
                                     let row_class = if is_checked {
                                         "works-table-row works-table-row--selected"
                                     } else {
@@ -442,24 +479,49 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                                     };
 
                                     html! {
-                                        <tr key={ w.id.clone() } class={ row_class }>
-                                            if is_edit {
+                                        <tr key={ w.id.to_string() } class={ row_class }>
+                                            { if is_edit { html! {
                                                 <td class="works-table-td works-table-td--check">
                                                     <input
                                                         type="checkbox"
                                                         checked={ is_checked }
-                                                        onchange={
-                                                            Callback::from(move |_: Event| {
-                                                                on_row_toggle.emit(id.clone());
-                                                            })
-                                                        }
+                                                        onchange={ Callback::from(move |_: Event| {
+                                                            on_row_toggle.emit(id);
+                                                        }) }
                                                     />
                                                 </td>
-                                            }
+                                            } } else { html! {} } }
                                             <td class="works-table-td family-td-clip">
-                                                { format!("[{}] {}", &w.category_tag, &w.category_name) }
+                                                { if is_edit { html! {
+                                                    <select
+                                                        class="cell-input"
+                                                        oninput={ on_change_category }
+                                                    >
+                                                        { for categories.iter().map(|c| {
+                                                            let sel = w.category_tag == c.tag;
+                                                            html! {
+                                                                <option value={ c.tag.clone() } selected={ sel }>
+                                                                    { format!("[{}] {}", c.tag, c.name) }
+                                                                </option>
+                                                            }
+                                                        }) }
+                                                    </select>
+                                                } } else { html! {
+                                                    { format!("[{}] {}", &w.category_tag, &w.category_name) }
+                                                } } }
                                             </td>
-                                            <td class="works-table-td">{ &w.description }</td>
+                                            <td class="works-table-td family-td-clip">
+                                                { if is_edit { html! {
+                                                    <input
+                                                        type="text"
+                                                        class="cell-input"
+                                                        value={ w.description.clone() }
+                                                        oninput={ on_change_description }
+                                                    />
+                                                } } else { html! {
+                                                    { &w.description }
+                                                } } }
+                                            </td>
                                         </tr>
                                     }
                                 }) }

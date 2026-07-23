@@ -5,16 +5,16 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
+use crate::components::icons::Plus;
 use crate::utils::invoke;
 use models::{Category, GenericAction, Work};
 
-#[derive(Serialize)]
-struct AddWorkArgs {
-    work: Work,
-}
-
 async fn add_work(work: Work) -> Result<(), String> {
-    let args = to_value(&AddWorkArgs { work }).map_err(|e| e.to_string())?;
+    #[derive(Serialize)]
+    struct Args {
+        work: Work,
+    }
+    let args = to_value(&Args { work }).map_err(|e| e.to_string())?;
     let result = invoke("add_work", args).await;
     if result.is_undefined() || result.is_null() {
         Ok(())
@@ -94,14 +94,9 @@ pub fn works_form(props: &WorksFormProps) -> Html {
         <aside class="works-form-card">
             <div class="works-form-header">
                 <span class="works-form-header-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
+                    <Plus />
                 </span>
-                <h3 class="works-form-title">{ "New Work Code" }</h3>
+                <h3 class="works-form-title">{ "New Work" }</h3>
             </div>
 
             <div class="works-form-body">
