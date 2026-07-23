@@ -6,19 +6,14 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use crate::components::sorting::{SortDir, sort_icon};
+use crate::components::sorting::{SortDir, SortState, sort_icon};
 use crate::on_sort;
-use crate::utils::invoke;
+use crate::utils::{fetch_records, invoke};
 use models::{Category, Work};
 
 #[derive(Properties, PartialEq)]
 pub struct WorksTableProps {
     pub refresh_trigger: u32,
-}
-
-async fn fetch_works() -> Result<Vec<Work>, String> {
-    let result = invoke("get_works", JsValue::UNDEFINED).await;
-    from_value::<Vec<Work>>(result).map_err(|e| e.to_string())
 }
 
 async fn delete_works(work_ids: Vec<i64>) -> Result<(), String> {
@@ -36,45 +31,14 @@ async fn delete_works(work_ids: Vec<i64>) -> Result<(), String> {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Default, Clone, PartialEq)]
 enum SortColumn {
+    #[default]
     Category,
     Description,
 }
 
-#[derive(Clone, PartialEq)]
-struct SortState {
-    column: SortColumn,
-    dir: SortDir,
-}
-
-impl SortState {
-    fn default() -> Self {
-        Self {
-            column: SortColumn::Category,
-            dir: SortDir::Asc,
-        }
-    }
-
-    fn toggle(&self, col: SortColumn) -> Self {
-        if self.column == col {
-            Self {
-                column: col,
-                dir: match self.dir {
-                    SortDir::Asc => SortDir::Desc,
-                    SortDir::Desc => SortDir::Asc,
-                },
-            }
-        } else {
-            Self {
-                column: col,
-                dir: SortDir::Asc,
-            }
-        }
-    }
-}
-
-fn sort_works(works: &[Work], sort: &SortState) -> Vec<Work> {
+fn sort_works(works: &[Work], sort: &SortState<SortColumn>) -> Vec<Work> {
     let mut sorted = works.to_vec();
     sorted.sort_by(|a, b| {
         let ord = match sort.column {
@@ -120,7 +84,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
 
         use_effect_with(trigger, move |_| {
             spawn_local(async move {
-                match fetch_works().await {
+                match fetch_records::<Work>("get_works").await {
                     Ok(data) => {
                         works.set(data);
                         error.set(None);

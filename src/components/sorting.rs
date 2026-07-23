@@ -1,9 +1,35 @@
 use yew::prelude::*;
 
-#[derive(Clone, PartialEq)]
+#[derive(Default, Clone, PartialEq)]
 pub enum SortDir {
+    #[default]
     Asc,
     Desc,
+}
+
+#[derive(Default, Clone, PartialEq)]
+pub struct SortState<T: Default> {
+    pub column: T,
+    pub dir: SortDir,
+}
+
+impl<T: Default + Clone + PartialEq> SortState<T> {
+    pub fn toggle(&self, col: T) -> Self {
+        if self.column == col {
+            Self {
+                column: col,
+                dir: match self.dir {
+                    SortDir::Asc => SortDir::Desc,
+                    SortDir::Desc => SortDir::Asc,
+                },
+            }
+        } else {
+            Self {
+                column: col,
+                dir: SortDir::Asc,
+            }
+        }
+    }
 }
 
 pub fn sort_icon(active: bool, dir: &SortDir) -> Html {

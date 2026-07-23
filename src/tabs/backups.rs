@@ -347,3 +347,34 @@ pub fn backups_tab_body() -> Html {
         </div>
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_size_bytes() {
+        let size = 1023;
+        let formatted_string = format_size(size);
+
+        assert_eq!(formatted_string, "1023 B");
+    }
+
+    #[test]
+    fn test_format_size_kilobytes() {
+        let size = 52_000;
+        let formatted_string = format_size(size);
+
+        // Difference in values is due to kilo- vs kibi- representation
+        assert_eq!(formatted_string, "50.8 KB");
+    }
+
+    #[test]
+    fn test_format_size_megabytes() {
+        let size = 12_300_000;
+        let formatted_string = format_size(size);
+
+        // Difference in values is due to mega- vs mebi- representation
+        assert_eq!(formatted_string, "11.7 MB");
+    }
+}

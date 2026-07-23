@@ -1,3 +1,5 @@
+use serde::de::DeserializeOwned;
+use serde_wasm_bindgen::from_value;
 use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::*;
 use yew::prelude::{Html, html};
@@ -12,6 +14,11 @@ extern "C" {
 extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "clipboardManager"])]
     pub async fn writeText(text: &str);
+}
+
+pub async fn fetch_records<T: DeserializeOwned>(cmd: &str) -> Result<Vec<T>, String> {
+    let result = invoke(cmd, JsValue::UNDEFINED).await;
+    from_value::<Vec<T>>(result).map_err(|e| e.to_string())
 }
 
 pub fn apply_theme(theme: &str) {

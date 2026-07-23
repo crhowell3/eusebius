@@ -1,23 +1,17 @@
 use std::collections::HashSet;
 
 use serde::Serialize;
-use serde_wasm_bindgen::{from_value, to_value};
-use wasm_bindgen::JsValue;
+use serde_wasm_bindgen::to_value;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use crate::utils::invoke;
+use crate::utils::{fetch_records, invoke};
 use models::Category;
 
 #[derive(Properties, PartialEq)]
 pub struct CategoriesTableProps {
     pub refresh_trigger: u32,
     pub on_category_delete: Callback<()>,
-}
-
-async fn fetch_categories() -> Result<Vec<Category>, String> {
-    let result = invoke("get_categories", JsValue::UNDEFINED).await;
-    from_value::<Vec<Category>>(result).map_err(|e| e.to_string())
 }
 
 async fn delete_categories(tags: Vec<String>) -> Result<(), String> {
@@ -50,7 +44,7 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
 
         use_effect_with(trigger, move |_| {
             spawn_local(async move {
-                match fetch_categories().await {
+                match fetch_records::<Category>("get_categories").await {
                     Ok(data) => {
                         categories.set(data);
                         error.set(None);

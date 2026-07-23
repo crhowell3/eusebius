@@ -1,24 +1,18 @@
 use std::collections::HashSet;
 
 use serde::Serialize;
-use serde_wasm_bindgen::{from_value, to_value};
-use wasm_bindgen::JsValue;
+use serde_wasm_bindgen::to_value;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use crate::components::sorting::{SortDir, sort_icon};
+use crate::components::sorting::{SortDir, SortState, sort_icon};
 use crate::on_sort;
-use crate::utils::invoke;
+use crate::utils::{fetch_records, invoke};
 use models::Death;
 
 #[derive(Properties, PartialEq)]
 pub struct DeathsTableProps {
     pub refresh_trigger: u32,
-}
-
-async fn fetch_deaths() -> Result<Vec<Death>, String> {
-    let result = invoke("get_deaths", JsValue::UNDEFINED).await;
-    from_value::<Vec<Death>>(result).map_err(|e| e.to_string())
 }
 
 async fn delete_deaths(death_ids: Vec<i64>) -> Result<(), String> {
@@ -36,46 +30,15 @@ async fn delete_deaths(death_ids: Vec<i64>) -> Result<(), String> {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Default, Clone, PartialEq)]
 enum SortColumn {
+    #[default]
     FirstName,
     LastName,
     DateOfDeath,
 }
 
-#[derive(Clone, PartialEq)]
-struct SortState {
-    column: SortColumn,
-    dir: SortDir,
-}
-
-impl SortState {
-    fn default() -> Self {
-        Self {
-            column: SortColumn::FirstName,
-            dir: SortDir::Asc,
-        }
-    }
-
-    fn toggle(&self, col: SortColumn) -> Self {
-        if self.column == col {
-            Self {
-                column: col,
-                dir: match self.dir {
-                    SortDir::Asc => SortDir::Desc,
-                    SortDir::Desc => SortDir::Asc,
-                },
-            }
-        } else {
-            Self {
-                column: col,
-                dir: SortDir::Asc,
-            }
-        }
-    }
-}
-
-fn sort_deaths(deaths: &[Death], sort: &SortState) -> Vec<Death> {
+fn sort_deaths(deaths: &[Death], sort: &SortState<SortColumn>) -> Vec<Death> {
     let mut sorted = deaths.to_vec();
     sorted.sort_by(|a, b| {
         let ord = match sort.column {
@@ -108,7 +71,7 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
 
         use_effect_with(trigger, move |_| {
             spawn_local(async move {
-                match fetch_deaths().await {
+                match fetch_records::<Death>("get_deaths").await {
                     Ok(data) => {
                         deaths.set(data);
                         error.set(None);

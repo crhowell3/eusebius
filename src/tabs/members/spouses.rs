@@ -8,14 +8,14 @@ use yew::prelude::*;
 use crate::utils::invoke;
 use models::{Spouse, SpouseAction};
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct GetSpouseArgs {
-    family_id: String,
-}
-
 async fn fetch_spouse(family_id: &str) -> Result<Option<Spouse>, String> {
-    let args = to_value(&GetSpouseArgs {
+    #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Args {
+        family_id: String,
+    }
+
+    let args = to_value(&Args {
         family_id: family_id.to_string(),
     })
     .map_err(|e| e.to_string())?;
@@ -23,13 +23,12 @@ async fn fetch_spouse(family_id: &str) -> Result<Option<Spouse>, String> {
     from_value::<Option<Spouse>>(result).map_err(|e| e.to_string())
 }
 
-#[derive(Serialize)]
-struct SaveSpouseArgs {
-    spouse: Spouse,
-}
-
 async fn save_spouse(spouse: Spouse) -> Result<(), String> {
-    let args = to_value(&SaveSpouseArgs { spouse }).map_err(|e| e.to_string())?;
+    #[derive(Serialize)]
+    struct Args {
+        spouse: Spouse,
+    }
+    let args = to_value(&Args { spouse }).map_err(|e| e.to_string())?;
     let result = invoke("save_spouse", args).await;
     if result.is_undefined() || result.is_null() {
         Ok(())
