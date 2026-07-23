@@ -12,6 +12,7 @@ use models::Category;
 #[derive(Properties, PartialEq)]
 pub struct CategoriesTableProps {
     pub refresh_trigger: u32,
+    pub on_category_delete: Callback<()>,
 }
 
 async fn fetch_categories() -> Result<Vec<Category>, String> {
@@ -110,10 +111,12 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
     let on_delete = {
         let selected = selected.clone();
         let categories = categories.clone();
+        let on_category_delete = props.on_category_delete.clone();
         Callback::from(move |_: MouseEvent| {
             let to_delete: Vec<String> = (*selected).iter().cloned().collect();
             let selected = selected.clone();
             let works = categories.clone();
+            let on_category_delete = on_category_delete.clone();
             spawn_local(async move {
                 match delete_categories(to_delete).await {
                     Ok(_) => {
@@ -124,6 +127,7 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                             .collect();
                         works.set(remaining);
                         selected.set(HashSet::new());
+                        on_category_delete.emit(());
                     }
                     Err(_e) => {
                         // TODO(@crhowell3): Add in proper error handling
