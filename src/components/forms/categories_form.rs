@@ -89,7 +89,7 @@ pub fn categories_form(props: &CategoriesFormProps) -> Html {
                     </div>
                 }
 
-                <div class="works-form-hint">{ "Tags are assigned automatically (A, B, C, ... AA, AB, ...)" }</div>
+                <div class="works-form-hint">{ "Tags are assigned automatically" }</div>
 
                 <div class="form">
                     <input

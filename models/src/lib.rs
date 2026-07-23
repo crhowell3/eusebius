@@ -42,7 +42,7 @@ pub struct TableInfo {
     pub path: String,
 }
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Work {
     pub id: i64,

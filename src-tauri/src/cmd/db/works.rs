@@ -35,6 +35,19 @@ pub async fn add_work(db: State<'_, DbState>, work: Work) -> Result<(), String> 
 }
 
 #[tauri::command]
+pub async fn update_work(db: State<'_, DbState>, work: Work) -> Result<(), String> {
+    sqlx::query("UPDATE works SET description = ?, category_tag = ? WHERE id = ?")
+        .bind(&work.description)
+        .bind(&work.category_tag)
+        .bind(&work.id)
+        .execute(&db.0)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn delete_works(db: State<'_, DbState>, work_ids: Vec<i64>) -> Result<(), String> {
     if work_ids.is_empty() {
         return Ok(());

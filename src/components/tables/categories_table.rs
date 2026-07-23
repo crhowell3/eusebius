@@ -185,9 +185,9 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                 } else {
                     <table class="works-table">
                         <colgroup>
-                            <col class="works-col-check" />
+                            <col class="width: 44px" />
                             <col style="width: 80px" />   // tag
-                            <col class="works-col-description" />  // name
+                            <col class="width: 150px" />  // name
                             <col style="width: 100px" />  // protected badge
                         </colgroup>
                         <thead>
@@ -223,7 +223,7 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                                             <input
                                                 type="checkbox"
                                                 checked={ is_checked }
-                                                disabled={&c.tag == "MISC"}
+                                                disabled={ is_misc }
                                                 onchange={
                                                     Callback::from(move |_: Event| {
                                                         on_row_toggle.emit(tag.clone());
