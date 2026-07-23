@@ -6,6 +6,8 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
+use crate::components::sorting::{SortDir, sort_icon};
+use crate::on_sort;
 use crate::utils::invoke;
 use models::{Category, Work};
 
@@ -36,13 +38,8 @@ async fn delete_works(work_ids: Vec<i64>) -> Result<(), String> {
 
 #[derive(Clone, PartialEq)]
 enum SortColumn {
+    Category,
     Description,
-}
-
-#[derive(Clone, PartialEq)]
-enum SortDir {
-    Asc,
-    Desc,
 }
 
 #[derive(Clone, PartialEq)]
@@ -54,7 +51,7 @@ struct SortState {
 impl SortState {
     fn default() -> Self {
         Self {
-            column: SortColumn::Description,
+            column: SortColumn::Category,
             dir: SortDir::Asc,
         }
     }
@@ -81,6 +78,7 @@ fn sort_works(works: &[Work], sort: &SortState) -> Vec<Work> {
     let mut sorted = works.to_vec();
     sorted.sort_by(|a, b| {
         let ord = match sort.column {
+            SortColumn::Category => a.category_tag.cmp(&b.category_tag),
             SortColumn::Description => a.description.cmp(&b.description),
         };
         match sort.dir {
@@ -89,38 +87,6 @@ fn sort_works(works: &[Work], sort: &SortState) -> Vec<Work> {
         }
     });
     sorted
-}
-
-fn sort_icon(active: bool, dir: &SortDir) -> Html {
-    if !active {
-        return html! {
-            <svg class="sort-icon sort-icon--inactive" xmlns="http://www.w3.org/2000/svg"
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 15l5 5 5-5"/>
-                <path d="M7 9l5-5 5 5"/>
-            </svg>
-        };
-    }
-    match dir {
-        SortDir::Asc => html! {
-            <svg class="sort-icon sort-icon--active" xmlns="http://www.w3.org/2000/svg"
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 15l5 5 5-5"/>
-            </svg>
-        },
-        SortDir::Desc => html! {
-            <svg class="sort-icon sort-icon--active" xmlns="http://www.w3.org/2000/svg"
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 9l5-5 5 5"/>
-            </svg>
-        },
-    }
 }
 
 #[function_component(WorksTable)]
@@ -175,12 +141,8 @@ pub fn works_table(props: &WorksTableProps) -> Html {
     let some_checked = !(*selected).is_empty();
     let selected_count = (*selected).len();
 
-    let on_sort_description = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| {
-            sort.set((*sort).clone().toggle(SortColumn::Description))
-        })
-    };
+    let on_sort_category = on_sort!(SortColumn::Category, sort);
+    let on_sort_description = on_sort!(SortColumn::Description, sort);
 
     let on_row_toggle = {
         let selected = selected.clone();
@@ -310,7 +272,16 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                                         onchange={ on_select_all }
                                     />
                                 </th>
-                                <th class="works-table-th">{ "Category" }</th>
+                                <th class="works-table-th works-table-th--sortable"
+                                    onclick={ on_sort_category }>
+                                    <span class="works-table-th-inner">
+                                        { "Category" }
+                                        { sort_icon(
+                                            (*sort).column == SortColumn::Description,
+                                            &(*sort).dir
+                                        ) }
+                                    </span>
+                                </th>
                                 <th class="works-table-th works-table-th--sortable"
                                     onclick={ on_sort_description }>
                                     <span class="works-table-th-inner">

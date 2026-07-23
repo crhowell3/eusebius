@@ -68,8 +68,7 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
     let selected_count = (*selected).len();
 
     let can_delete = some_checked && !(*selected).contains("MISC");
-
-    let all_checked = !(*categories).is_empty()
+    let all_checked = can_delete
         && (*categories)
             .iter()
             .filter(|c| c.tag != "MISC")
@@ -230,6 +229,7 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                                             <input
                                                 type="checkbox"
                                                 checked={ is_checked }
+                                                disabled={&c.tag == "MISC"}
                                                 onchange={
                                                     Callback::from(move |_: Event| {
                                                         on_row_toggle.emit(tag.clone());
