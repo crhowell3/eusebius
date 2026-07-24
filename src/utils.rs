@@ -6,8 +6,8 @@ use yew::prelude::{Html, html};
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
-    pub async fn invoke(cmd: &str, args: JsValue) -> JsValue;
+    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"], catch)]
+    pub async fn invoke(cmd: &str, args: JsValue) -> Result<JsValue, JsValue>;
 }
 
 #[wasm_bindgen]
@@ -17,7 +17,9 @@ extern "C" {
 }
 
 pub async fn fetch_records<T: DeserializeOwned>(cmd: &str) -> Result<Vec<T>, String> {
-    let result = invoke(cmd, JsValue::UNDEFINED).await;
+    let result = invoke(cmd, JsValue::UNDEFINED)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
     from_value::<Vec<T>>(result).map_err(|e| e.to_string())
 }
 

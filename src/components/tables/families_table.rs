@@ -24,12 +24,11 @@ async fn delete_families(family_ids: Vec<String>) -> Result<(), String> {
         family_ids: Vec<String>,
     }
     let args = to_value(&Args { family_ids }).map_err(|e| e.to_string())?;
-    let result = invoke("delete_families", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    let _ = invoke("delete_families", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 #[derive(Default, Clone, PartialEq)]

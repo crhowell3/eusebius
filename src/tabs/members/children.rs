@@ -26,7 +26,9 @@ async fn fetch_children(family_id: &str) -> Result<Vec<Child>, String> {
         family_id: family_id.to_string(),
     })
     .map_err(|e| e.to_string())?;
-    let result = invoke("get_children_by_family", args).await;
+    let result = invoke("get_children_by_family", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
     from_value::<Vec<Child>>(result).map_err(|e| e.to_string())
 }
 
@@ -43,7 +45,9 @@ async fn save_children(family_id: &str, children: Vec<Child>) -> Result<Vec<Chil
         children,
     })
     .map_err(|e| e.to_string())?;
-    let result = invoke("save_children", args).await;
+    let result = invoke("save_children", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
     from_value::<Vec<Child>>(result).map_err(|e| e.to_string())
 }
 
@@ -55,12 +59,11 @@ struct DeleteChildrenArgs {
 
 async fn delete_children(child_ids: Vec<i64>) -> Result<(), String> {
     let args = to_value(&DeleteChildrenArgs { child_ids }).map_err(|e| e.to_string())?;
-    let result = invoke("delete_children", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    let _ = invoke("delete_children", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 enum FieldValue {

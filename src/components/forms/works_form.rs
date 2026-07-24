@@ -15,12 +15,11 @@ async fn add_work(work: Work) -> Result<(), String> {
         work: Work,
     }
     let args = to_value(&Args { work }).map_err(|e| e.to_string())?;
-    let result = invoke("add_work", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    let _ = invoke("add_work", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 #[derive(Properties, PartialEq)]
@@ -34,15 +33,20 @@ pub fn works_form(props: &WorksFormProps) -> Html {
     let form_error = use_state(|| None::<String>);
     let new_work = use_reducer(Work::default);
     let categories = use_state(Vec::<Category>::new);
+    let error = use_state(|| None::<String>);
 
     {
         let trigger = props.refresh_trigger;
         let categories = categories.clone();
         use_effect_with(trigger, move |_| {
             spawn_local(async move {
-                let result = invoke("get_categories", JsValue::UNDEFINED).await;
-                if let Ok(data) = from_value::<Vec<Category>>(result) {
-                    categories.set(data);
+                match invoke("get_categories", JsValue::UNDEFINED)
+                    .await
+                    .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))
+                    .and_then(|v| from_value::<Vec<Category>>(v).map_err(|e| e.to_string()))
+                {
+                    Ok(data) => categories.set(data),
+                    Err(e) => error.set(Some(e)),
                 }
             });
             || ()

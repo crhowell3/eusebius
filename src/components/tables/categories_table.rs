@@ -15,26 +15,31 @@ async fn delete_categories(tags: Vec<String>) -> Result<(), String> {
         tags: Vec<String>,
     }
     let args = to_value(&Args { tags }).map_err(|e| e.to_string())?;
-    let result = invoke("delete_categories", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    let _ = invoke("delete_categories", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
-async fn update_category(category: Category) -> Result<(), String> {
+async fn update_category(old_tag: String, new_tag: String, name: String) -> Result<(), String> {
     #[derive(Serialize)]
     struct Args {
-        category: Category,
+        old_tag: String,
+        new_tag: String,
+        name: String,
     }
-    let args = to_value(&Args { category }).map_err(|e| e.to_string())?;
-    let result = invoke("update_category", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown_error".to_string()))
-    }
+    let args = to_value(&Args {
+        old_tag,
+        new_tag,
+        name,
+    })
+    .map_err(|e| e.to_string())?;
+    let _ = invoke("update_category", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 #[derive(Clone, PartialEq)]
@@ -58,6 +63,7 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
     let initial_load = use_state(|| true);
     let mode = use_state(|| TableMode::View);
     let saving = use_state(|| false);
+    let original_tags = use_state(std::collections::HashMap::<String, String>::new);
 
     {
         let categories = categories.clone();
@@ -66,15 +72,21 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
         let selected = selected.clone();
         let initial_load = initial_load.clone();
         let trigger = props.refresh_trigger;
+        let original_tags = original_tags.clone();
 
         use_effect_with(trigger, move |_| {
             spawn_local(async move {
                 match fetch_records::<Category>("get_categories").await {
                     Ok(data) => {
                         saved_categories.set(data.clone());
-                        categories.set(data);
+                        categories.set(data.clone());
                         error.set(None);
                         selected.set(HashSet::new());
+                        original_tags.set(
+                            data.iter()
+                                .map(|c| (c.tag.clone(), c.tag.clone()))
+                                .collect(),
+                        );
                     }
                     Err(e) => error.set(Some(e)),
                 }
@@ -183,6 +195,7 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
         let saving = saving.clone();
         let mode = mode.clone();
         let saved_snapshot = (*saved_categories).clone();
+        let original_tags = original_tags.clone();
 
         Callback::from(move |_: MouseEvent| {
             let changed: Vec<Category> = (*categories)
@@ -205,12 +218,19 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
             let error = error.clone();
             let saving = saving.clone();
             let mode = mode.clone();
+            let original_tags = original_tags.clone();
             saving.set(true);
 
             spawn_local(async move {
                 let mut all_ok = true;
-                for categories in changed {
-                    if let Err(e) = update_category(categories).await {
+                for cat in changed {
+                    let old_tag = (*original_tags)
+                        .get(&cat.tag)
+                        .cloned()
+                        .unwrap_or_else(|| cat.tag.clone());
+                    if let Err(e) =
+                        update_category(old_tag, cat.tag.clone(), cat.name.clone()).await
+                    {
                         error.set(Some(e));
                         all_ok = false;
                         break;
@@ -223,6 +243,31 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                     mode.set(TableMode::View);
                 }
                 saving.set(false);
+            });
+        })
+    };
+
+    let on_field_change = {
+        let categories = categories.clone();
+
+        Callback::from(move |(tag, field, value): (String, &'static str, String)| {
+            categories.set({
+                let mut next = (*categories).clone();
+                if let Some(c) = next.iter_mut().find(|c| c.tag == tag) {
+                    match field {
+                        "tag" => {
+                            let val = value
+                                .chars()
+                                .filter(|c| c.is_ascii_alphabetic())
+                                .collect::<String>()
+                                .to_uppercase();
+                            c.tag = val;
+                        }
+                        "name" => c.name = value,
+                        _ => {}
+                    }
+                }
+                next
             });
         })
     };
@@ -278,8 +323,26 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                 </div>
             </div>
 
-            if let Some(err) = (*error).clone() {
-                <div class="works-table-error">{ err }</div>
+            if let Some(err) = (*error).as_deref() {
+                <div class="works-table-error">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    { err }
+                    <button
+                        style="margin-left: auto; background: none; border: none; cursor: pointer; color: inherit;"
+                        onclick={ Callback::from({
+                            let error = error.clone();
+                            move |_: MouseEvent| error.set(None)
+                        }) }
+                    >
+                        { "×" }
+                    </button>
+                </div>
             }
 
             <div class="works-table-body">
@@ -295,20 +358,22 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                 } else {
                     <table class="works-table">
                         <colgroup>
-                            <col class="width: 44px" />
+                            { if is_edit { html! { <col style="width: 44px" /> } } else { html! {} } }
                             <col style="width: 80px" />   // tag
                             <col class="width: 150px" />  // name
                             <col style="width: 100px" />  // protected badge
                         </colgroup>
                         <thead>
                             <tr>
-                                <th class="works-table-th works-table-th--check">
-                                    <input
-                                        type="checkbox"
-                                        checked={ all_checked }
-                                        onchange={ on_select_all }
-                                    />
-                                </th>
+                                { if is_edit { html! {
+                                    <th class="works-table-th works-table-th--check">
+                                        <input
+                                            type="checkbox"
+                                            checked={ all_checked }
+                                            onchange={ on_select_all }
+                                        />
+                                    </th>
+                                } } else { html! {} } }
                                 <th class="works-table-th">{ "Tag" }</th>
                                 <th class="works-table-th">{ "Name" }</th>
                                 <th class="works-table-th"></th>
@@ -320,6 +385,33 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                                 let is_misc = c.tag == "MISC";
                                 let is_checked = (*selected).contains(&c.tag);
                                 let on_row_toggle = on_row_toggle.clone();
+                                let on_field_change = on_field_change.clone();
+
+                                let on_change_tag = {
+                                    let on_field_change = on_field_change.clone();
+                                    let tag = tag.clone();
+                                    Callback::from(move |e: InputEvent| {
+                                        let tag = tag.clone();
+                                        use wasm_bindgen::JsCast;
+                                        use web_sys::HtmlInputElement;
+                                        if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+                                            on_field_change.emit((tag, "tag", input.value()));
+                                        }
+                                    })
+                                };
+
+                                let on_change_name = {
+                                    let on_field_change = on_field_change.clone();
+                                    let tag = tag.clone();
+                                    Callback::from(move |e: InputEvent| {
+                                        let tag = tag.clone();
+                                        use wasm_bindgen::JsCast;
+                                        use web_sys::HtmlInputElement;
+                                        if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+                                            on_field_change.emit((tag, "name", input.value()));
+                                        }
+                                    })
+                                };
 
                                 let row_class = if is_checked {
                                     "works-table-row works-table-row--selected"
@@ -329,24 +421,46 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
 
                                 html! {
                                     <tr key={ c.tag.clone() } class={ row_class }>
-                                        <td class="works-table-td works-table-td--check">
-                                            <input
-                                                type="checkbox"
-                                                checked={ is_checked }
-                                                disabled={ is_misc }
-                                                onchange={
-                                                    Callback::from(move |_: Event| {
-                                                        on_row_toggle.emit(tag.clone());
-                                                    })
-                                                }
-                                            />
+                                        { if is_edit { html! {
+                                            <td class="works-table-td works-table-td--check">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={ is_checked }
+                                                    disabled={ is_misc }
+                                                    onchange={
+                                                        Callback::from(move |_: Event| {
+                                                            on_row_toggle.emit(tag.clone());
+                                                        })
+                                                    }
+                                                />
+                                            </td>
+                                        } } else { html! {} } }
+                                        <td class="works-table-td">
+                                            { if is_edit && !is_misc { html! {
+                                                <input
+                                                    type="text"
+                                                    class="cell-input"
+                                                    value={ c.tag.clone() }
+                                                    oninput={ on_change_tag }
+                                                />
+                                            } } else { html! {
+                                                <span class="works-table-code-badge">
+                                                    { &c.tag }
+                                                </span>
+                                            } } }
                                         </td>
                                         <td class="works-table-td">
-                                            <span class="works-table-code-badge">
-                                                { &c.tag }
-                                            </span>
+                                            { if is_edit && !is_misc { html! {
+                                                <input
+                                                    type="text"
+                                                    class="cell-input"
+                                                    value={ c.name.clone() }
+                                                    oninput={ on_change_name }
+                                                />
+                                            } } else { html! {
+                                                { &c.name }
+                                            } } }
                                         </td>
-                                        <td class="works-table-td">{ &c.name }</td>
                                         <td class="works-table-td">
                                             if is_misc {
                                                 <span class="family-badge family-badge--no">

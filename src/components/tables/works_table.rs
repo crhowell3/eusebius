@@ -29,12 +29,11 @@ async fn delete_works(work_ids: Vec<i64>) -> Result<(), String> {
         work_ids: Vec<i64>,
     }
     let args = to_value(&Args { work_ids }).map_err(|e| e.to_string())?;
-    let result = invoke("delete_works", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    let _ = invoke("delete_works", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 async fn update_work(work: Work) -> Result<(), String> {
@@ -43,12 +42,11 @@ async fn update_work(work: Work) -> Result<(), String> {
         work: Work,
     }
     let args = to_value(&Args { work }).map_err(|e| e.to_string())?;
-    let result = invoke("update_work", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown_error".to_string()))
-    }
+    let _ = invoke("update_work", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 #[derive(Default, Clone, PartialEq)]
@@ -293,7 +291,9 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                 })
                 .unwrap();
 
-                let confirmed = invoke("show_confirm_dialog", args).await;
+                let Ok(confirmed) = invoke("show_confirm_dialog", args).await else {
+                    return;
+                };
                 if !from_value::<bool>(confirmed).unwrap_or(false) {
                     return;
                 }

@@ -8,13 +8,16 @@ use yew::prelude::*;
 use crate::utils::invoke;
 use models::{Category, CategoryAction};
 
-async fn add_category(name: String) -> Result<Category, String> {
+async fn add_category(tag: String, name: String) -> Result<Category, String> {
     #[derive(Serialize)]
     struct Args {
+        tag: String,
         name: String,
     }
-    let args = to_value(&Args { name }).map_err(|e| e.to_string())?;
-    let result = invoke("add_category", args).await;
+    let args = to_value(&Args { tag, name }).map_err(|e| e.to_string())?;
+    let result = invoke("add_category", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
     from_value::<Category>(result).map_err(|e| e.to_string())
 }
 
@@ -27,6 +30,23 @@ pub struct CategoriesFormProps {
 pub fn categories_form(props: &CategoriesFormProps) -> Html {
     let form_error = use_state(|| None::<String>);
     let new_category = use_reducer(Category::default);
+
+    let on_tag_input = {
+        let new_category = new_category.dispatcher();
+        Callback::from(move |e: InputEvent| {
+            use wasm_bindgen::JsCast;
+            use web_sys::HtmlInputElement;
+            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+                let val = input
+                    .value()
+                    .chars()
+                    .filter(|c| c.is_ascii_alphabetic())
+                    .collect::<String>()
+                    .to_uppercase();
+                new_category.dispatch(CategoryAction::SetTag(val));
+            }
+        })
+    };
 
     let on_name_input = {
         let new_category = new_category.dispatcher();
@@ -43,11 +63,12 @@ pub fn categories_form(props: &CategoriesFormProps) -> Html {
         let on_category_added = props.on_category_added.clone();
         Callback::from(move |_: MouseEvent| {
             let name = new_category.name.clone();
+            let tag = new_category.tag.clone();
             let form_error = form_error.clone();
             let new_category = new_category.dispatcher();
             let on_category_added = on_category_added.clone();
             spawn_local(async move {
-                match add_category(name).await {
+                match add_category(tag, name).await {
                     Ok(_) => {
                         new_category.dispatch(CategoryAction::Reset);
                         form_error.set(None);
@@ -89,7 +110,22 @@ pub fn categories_form(props: &CategoriesFormProps) -> Html {
                     </div>
                 }
 
-                <div class="works-form-hint">{ "Tags are assigned automatically" }</div>
+                <div class="form">
+                    <input
+                        type="text"
+                        name="tag"
+                        class="form-input"
+                        placeholder=" "
+                        autocomplete="off"
+                        maxlength="10"
+                        value={ new_category.tag.clone() }
+                        oninput={ on_tag_input }
+                    />
+                    <label for="tag" class="form-label">{ "Tag" }</label>
+                </div>
+                <div class="works-form-hint">
+                    { "Letters only, automatically uppercased" }
+                </div>
 
                 <div class="form">
                     <input

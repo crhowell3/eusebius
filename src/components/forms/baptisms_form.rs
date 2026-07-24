@@ -15,12 +15,11 @@ struct AddBaptismArgs {
 
 async fn add_baptism(baptism: Baptism) -> Result<(), String> {
     let args = to_value(&AddBaptismArgs { baptism }).map_err(|e| e.to_string())?;
-    let result = invoke("add_baptism", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    let _ = invoke("add_baptism", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 fn is_valid_family_id(s: &str) -> bool {

@@ -5,53 +5,6 @@ use models::Category;
 
 use super::DbState;
 
-fn next_tag(existing_tags: &[String]) -> String {
-    let max = existing_tags
-        .iter()
-        .filter(|t| {
-            !t.is_empty()
-                && t.chars().all(|c| c.is_ascii_uppercase())
-                && t.len() <= 26
-                && t.as_str() != "MISC"
-        })
-        .max_by(|a, b| a.len().cmp(&b.len()).then(a.cmp(b)));
-
-    match max {
-        None => "A".to_string(),
-        Some(tag) => {
-            // Kinda janky but it works
-            if tag == "MISB" {
-                increment_tag("MISC")
-            } else {
-                increment_tag(tag)
-            }
-        }
-    }
-}
-
-fn increment_tag(tag: &str) -> String {
-    let mut chars: Vec<u8> = tag.bytes().collect();
-    let mut i = chars.len() as i32 - 1;
-
-    loop {
-        if i < 0 {
-            let mut result = vec![b'A'; chars.len() + 1];
-            for c in result.iter_mut() {
-                *c = b'A';
-            }
-            return String::from_utf8(result).unwrap();
-        }
-
-        if chars[i as usize] < b'Z' {
-            chars[i as usize] += 1;
-            return String::from_utf8(chars).unwrap();
-        } else {
-            chars[i as usize] = b'A';
-            i -= 1;
-        }
-    }
-}
-
 pub async fn setup_categories_table(pool: &sqlx::SqlitePool) -> Result<(), String> {
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS categories (
@@ -87,17 +40,30 @@ pub async fn get_categories(db: State<'_, DbState>) -> Result<Vec<Category>, Str
 }
 
 #[tauri::command]
-pub async fn add_category(db: State<'_, DbState>, name: String) -> Result<Category, String> {
+pub async fn add_category(
+    db: State<'_, DbState>,
+    tag: String,
+    name: String,
+) -> Result<Category, String> {
+    if tag.is_empty() || !tag.chars().all(|c| c.is_ascii_alphabetic()) {
+        return Err("Tag must contain only letters".to_string());
+    }
+
     if name.trim().is_empty() {
         return Err("Category name cannot be empty".to_string());
     }
 
-    let existing_tags: Vec<String> = sqlx::query_scalar("SELECT tag FROM categories")
-        .fetch_all(&db.0)
+    let tag = tag.to_uppercase();
+
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM categories WHERE tag = ?)")
+        .bind(&tag)
+        .fetch_one(&db.0)
         .await
         .map_err(|e| e.to_string())?;
 
-    let tag = next_tag(&existing_tags);
+    if exists {
+        return Err(format!("Tag \"{}\" is already in use", tag));
+    }
 
     sqlx::query("INSERT INTO categories (tag, name) VALUES (?, ?)")
         .bind(&tag)
@@ -110,6 +76,55 @@ pub async fn add_category(db: State<'_, DbState>, name: String) -> Result<Catego
         tag,
         name: name.trim().to_string(),
     })
+}
+
+#[tauri::command]
+pub async fn update_category(
+    db: State<'_, DbState>,
+    old_tag: String,
+    new_tag: String,
+    name: String,
+) -> Result<(), String> {
+    if new_tag.is_empty() || !new_tag.chars().all(|c| c.is_ascii_alphabetic()) {
+        return Err("Tag must contain only letters".to_string());
+    }
+
+    let new_tag = new_tag.to_uppercase();
+
+    if new_tag != old_tag {
+        let exists: bool =
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM categories WHERE tag = ?)")
+                .bind(&new_tag)
+                .fetch_one(&db.0)
+                .await
+                .map_err(|e| e.to_string())?;
+
+        if exists {
+            return Err(format!("Tag \"{}\" is already in use", new_tag));
+        }
+
+        sqlx::query("INSERT INTO categories (tag, name) VALUES (?, ?)")
+            .bind(&new_tag)
+            .bind(&name)
+            .execute(&db.0)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        sqlx::query("DELETE FROM categories WHERE tag = ?")
+            .bind(&old_tag)
+            .execute(&db.0)
+            .await
+            .map_err(|e| e.to_string())?;
+    } else {
+        sqlx::query("UPDATE categories SET name = ? WHERE tag = ?")
+            .bind(&name)
+            .bind(&old_tag)
+            .execute(&db.0)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -144,41 +159,4 @@ pub async fn delete_categories(db: State<'_, DbState>, tags: Vec<String>) -> Res
         .map_err(|e| e.to_string())?;
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_next_tag() {
-        let current_tag: Vec<String> = vec!["A".to_string()];
-        let new_tag = next_tag(&current_tag);
-
-        assert_eq!(new_tag, "B");
-    }
-
-    #[test]
-    fn test_next_tag_z() {
-        let current_tag: Vec<String> = vec!["Z".to_string()];
-        let new_tag = next_tag(&current_tag);
-
-        assert_eq!(new_tag, "AA");
-    }
-
-    #[test]
-    fn test_next_tag_misc() {
-        let current_tag: Vec<String> = vec!["MISC".to_string()];
-        let new_tag = next_tag(&current_tag);
-
-        assert_eq!(new_tag, "A");
-    }
-
-    #[test]
-    fn test_next_tag_misb() {
-        let current_tag: Vec<String> = vec!["MISB".to_string()];
-        let new_tag = next_tag(&current_tag);
-
-        assert_eq!(new_tag, "MISD");
-    }
 }

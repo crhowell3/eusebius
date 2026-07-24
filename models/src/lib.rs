@@ -365,6 +365,7 @@ impl Category {
 
 pub enum CategoryAction {
     SetName(String),
+    SetTag(String),
     Reset,
 }
 
@@ -376,6 +377,10 @@ impl yew::prelude::Reducible for Category {
             CategoryAction::SetName(name) => std::rc::Rc::new(Self {
                 tag: self.tag.clone(),
                 name,
+            }),
+            CategoryAction::SetTag(tag) => std::rc::Rc::new(Self {
+                tag,
+                name: self.name.clone(),
             }),
             CategoryAction::Reset => std::rc::Rc::new(Category::default()),
         }

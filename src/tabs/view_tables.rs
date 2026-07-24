@@ -20,11 +20,13 @@ pub fn view_tables() -> Html {
 
         use_effect_with((), move |_| {
             spawn_local(async move {
-                let result = invoke("list_tables", JsValue::NULL).await;
-
-                match from_value::<Vec<TableInfo>>(result) {
+                match invoke("list_tables", JsValue::UNDEFINED)
+                    .await
+                    .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))
+                    .and_then(|v| from_value::<Vec<TableInfo>>(v).map_err(|e| e.to_string()))
+                {
                     Ok(data) => tables.set(data),
-                    Err(e) => error.set(Some(e.to_string())),
+                    Err(e) => error.set(Some(e)),
                 }
                 loading.set(false);
             });

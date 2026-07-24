@@ -15,12 +15,11 @@ struct AddDeathArgs {
 
 async fn add_death(death: Death) -> Result<(), String> {
     let args = to_value(&AddDeathArgs { death }).map_err(|e| e.to_string())?;
-    let result = invoke("add_death", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    let _ = invoke("add_death", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 #[derive(Properties, PartialEq)]

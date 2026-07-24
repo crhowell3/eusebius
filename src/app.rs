@@ -50,6 +50,7 @@ fn tab_pane(props: &TabPaneProps) -> Html {
 
 #[function_component(App)]
 pub fn app() -> Html {
+    let error = use_state(|| None::<String>);
     let tabs = use_state(|| {
         vec![Tab {
             id: "main".to_string(),
@@ -59,13 +60,17 @@ pub fn app() -> Html {
     let active_tab = use_state(|| "main".to_string());
 
     use_effect_with((), move |_| {
+        let error = error.clone();
         spawn_local(async move {
-            let result = invoke("load_settings", JsValue::UNDEFINED).await;
-            if let Ok(settings) = from_value::<AppSettings>(result) {
-                apply_theme(&settings.theme);
+            match invoke("load_settings", JsValue::UNDEFINED)
+                .await
+                .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))
+                .and_then(|v| from_value::<AppSettings>(v).map_err(|e| e.to_string()))
+            {
+                Ok(settings) => apply_theme(&settings.theme),
+                Err(e) => error.set(Some(e)),
             }
         });
-
         || ()
     });
 

@@ -73,7 +73,7 @@ pub fn main_menu(props: &MainMenuProps) -> Html {
 
     let on_exit = Callback::from(move |_: MouseEvent| {
         spawn_local(async move {
-            invoke("exit_app", JsValue::UNDEFINED).await;
+            let _ = invoke("exit_app", JsValue::UNDEFINED).await;
         });
     });
 

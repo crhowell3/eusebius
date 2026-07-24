@@ -19,7 +19,9 @@ async fn fetch_spouse(family_id: &str) -> Result<Option<Spouse>, String> {
         family_id: family_id.to_string(),
     })
     .map_err(|e| e.to_string())?;
-    let result = invoke("get_spouse", args).await;
+    let result = invoke("get_spouse", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
     from_value::<Option<Spouse>>(result).map_err(|e| e.to_string())
 }
 
@@ -29,12 +31,11 @@ async fn save_spouse(spouse: Spouse) -> Result<(), String> {
         spouse: Spouse,
     }
     let args = to_value(&Args { spouse }).map_err(|e| e.to_string())?;
-    let result = invoke("save_spouse", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    let _ = invoke("save_spouse", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 #[derive(Properties, PartialEq)]

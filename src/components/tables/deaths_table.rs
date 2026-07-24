@@ -22,12 +22,11 @@ async fn delete_deaths(death_ids: Vec<i64>) -> Result<(), String> {
         death_ids: Vec<i64>,
     }
     let args = to_value(&Args { death_ids }).map_err(|e| e.to_string())?;
-    let result = invoke("delete_deaths", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    let _ = invoke("delete_deaths", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 #[derive(Default, Clone, PartialEq)]
