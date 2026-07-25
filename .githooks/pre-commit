@@ -21,4 +21,4 @@ cargo fmt --manifest-path "$MANIFEST" --check \
 
 say "pre-commit: clippy"
 cargo clippy --manifest-path "$MANIFEST" --all-features --all-targets -- -Dclippy::all -Dclippy::pedantic \
-    || fail "Clippy found issues. Fix them."
+    || fail "Clippy found issues. Fix them, or bypass this once with: git commit --no-verify"
