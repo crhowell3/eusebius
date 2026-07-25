@@ -338,7 +338,6 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                         </span>
                     }
 
-
                     if is_edit {
                         <span class="works-mode-badge works-mode-badge--edit">
                             { "Edit Mode" }

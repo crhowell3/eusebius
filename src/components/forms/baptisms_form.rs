@@ -130,6 +130,8 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
                     </div>
                 }
 
+                <div class="member-form-section-label member-form-full">{ "Identity" }</div>
+
                 <div class="form">
                     <input
                         type="text"
@@ -178,6 +180,8 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
                         {"Last Name"}
                     </label>
                 </div>
+
+                <div class="member-form-section-label member-form-full">{ "Details" }</div>
 
                 <div class="form">
                     <input
