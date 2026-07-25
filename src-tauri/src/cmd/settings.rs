@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::Manager;
 
-use shared::AppSettings;
+use models::AppSettings;
 
 fn settings_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
@@ -10,6 +10,7 @@ fn settings_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("settings.toml"))
 }
 
+#[must_use]
 pub fn load_initial_settings(app: &tauri::AppHandle) -> AppSettings {
     let path = app
         .path()

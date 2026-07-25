@@ -6,36 +6,36 @@ use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use shared::{Spouse, SpouseAction};
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct GetSpouseArgs {
-    family_id: String,
-}
+use models::{Spouse, SpouseAction};
 
 async fn fetch_spouse(family_id: &str) -> Result<Option<Spouse>, String> {
-    let args = to_value(&GetSpouseArgs {
+    #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Args {
+        family_id: String,
+    }
+
+    let args = to_value(&Args {
         family_id: family_id.to_string(),
     })
     .map_err(|e| e.to_string())?;
-    let result = invoke("get_spouse", args).await;
+    let result = invoke("get_spouse", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
     from_value::<Option<Spouse>>(result).map_err(|e| e.to_string())
 }
 
-#[derive(Serialize)]
-struct SaveSpouseArgs {
-    spouse: Spouse,
-}
-
 async fn save_spouse(spouse: Spouse) -> Result<(), String> {
-    let args = to_value(&SaveSpouseArgs { spouse }).map_err(|e| e.to_string())?;
-    let result = invoke("save_spouse", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
+    #[derive(Serialize)]
+    struct Args {
+        spouse: Spouse,
     }
+    let args = to_value(&Args { spouse }).map_err(|e| e.to_string())?;
+    let _ = invoke("save_spouse", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 #[derive(Properties, PartialEq)]

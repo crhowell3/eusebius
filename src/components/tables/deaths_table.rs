@@ -1,86 +1,43 @@
 use std::collections::HashSet;
 
 use serde::Serialize;
-use serde_wasm_bindgen::{from_value, to_value};
-use wasm_bindgen::JsValue;
+use serde_wasm_bindgen::to_value;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use crate::utils::invoke;
-use shared::Death;
+use crate::components::sorting::{SortDir, SortState, sort_icon};
+use crate::on_sort;
+use crate::utils::{fetch_records, invoke};
+use models::Death;
 
 #[derive(Properties, PartialEq)]
 pub struct DeathsTableProps {
     pub refresh_trigger: u32,
 }
 
-async fn fetch_deaths() -> Result<Vec<Death>, String> {
-    let result = invoke("get_deaths", JsValue::UNDEFINED).await;
-    from_value::<Vec<Death>>(result).map_err(|e| e.to_string())
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct DeleteDeathsArgs {
-    death_ids: Vec<i64>,
-}
-
 async fn delete_deaths(death_ids: Vec<i64>) -> Result<(), String> {
-    let args = to_value(&DeleteDeathsArgs { death_ids }).map_err(|e| e.to_string())?;
-    let result = invoke("delete_deaths", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
+    #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Args {
+        death_ids: Vec<i64>,
     }
+    let args = to_value(&Args { death_ids }).map_err(|e| e.to_string())?;
+    let _ = invoke("delete_deaths", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Default, Clone, PartialEq)]
 enum SortColumn {
+    #[default]
     FirstName,
     LastName,
     DateOfDeath,
 }
 
-#[derive(Clone, PartialEq)]
-enum SortDir {
-    Asc,
-    Desc,
-}
-
-#[derive(Clone, PartialEq)]
-struct SortState {
-    column: SortColumn,
-    dir: SortDir,
-}
-
-impl SortState {
-    fn default() -> Self {
-        Self {
-            column: SortColumn::FirstName,
-            dir: SortDir::Asc,
-        }
-    }
-
-    fn toggle(&self, col: SortColumn) -> Self {
-        if self.column == col {
-            Self {
-                column: col,
-                dir: match self.dir {
-                    SortDir::Asc => SortDir::Desc,
-                    SortDir::Desc => SortDir::Asc,
-                },
-            }
-        } else {
-            Self {
-                column: col,
-                dir: SortDir::Asc,
-            }
-        }
-    }
-}
-
-fn sort_deaths(deaths: &[Death], sort: &SortState) -> Vec<Death> {
+fn sort_deaths(deaths: &[Death], sort: &SortState<SortColumn>) -> Vec<Death> {
     let mut sorted = deaths.to_vec();
     sorted.sort_by(|a, b| {
         let ord = match sort.column {
@@ -94,38 +51,6 @@ fn sort_deaths(deaths: &[Death], sort: &SortState) -> Vec<Death> {
         }
     });
     sorted
-}
-
-fn sort_icon(active: bool, dir: &SortDir) -> Html {
-    if !active {
-        return html! {
-            <svg class="sort-icon sort-icon--inactive" xmlns="http://www.w3.org/2000/svg"
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 15l5 5 5-5"/>
-                <path d="M7 9l5-5 5 5"/>
-            </svg>
-        };
-    }
-    match dir {
-        SortDir::Asc => html! {
-            <svg class="sort-icon sort-icon--active" xmlns="http://www.w3.org/2000/svg"
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 15l5 5 5-5"/>
-            </svg>
-        },
-        SortDir::Desc => html! {
-            <svg class="sort-icon sort-icon--active" xmlns="http://www.w3.org/2000/svg"
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 9l5-5 5 5"/>
-            </svg>
-        },
-    }
 }
 
 #[function_component(DeathsTable)]
@@ -145,7 +70,7 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
 
         use_effect_with(trigger, move |_| {
             spawn_local(async move {
-                match fetch_deaths().await {
+                match fetch_records::<Death>("get_deaths").await {
                     Ok(data) => {
                         deaths.set(data);
                         error.set(None);
@@ -167,16 +92,9 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
     let all_checked =
         !(*deaths).is_empty() && (*deaths).iter().all(|c| (*selected).contains(&c.id));
 
-    macro_rules! on_sort {
-        ($col:expr) => {{
-            let sort = sort.clone();
-            Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle($col)))
-        }};
-    }
-
-    let on_sort_first_name = on_sort!(SortColumn::FirstName);
-    let on_sort_last_name = on_sort!(SortColumn::LastName);
-    let on_sort_death_date = on_sort!(SortColumn::DateOfDeath);
+    let on_sort_first_name = on_sort!(SortColumn::FirstName, sort);
+    let on_sort_last_name = on_sort!(SortColumn::LastName, sort);
+    let on_sort_death_date = on_sort!(SortColumn::DateOfDeath, sort);
 
     let on_row_toggle = {
         let selected = selected.clone();

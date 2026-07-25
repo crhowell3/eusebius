@@ -24,7 +24,9 @@ fn format_size(bytes: u64) -> String {
 }
 
 async fn fetch_backups() -> Result<Vec<BackupInfo>, String> {
-    let result = invoke("list_backups", JsValue::UNDEFINED).await;
+    let result = invoke("list_backups", JsValue::UNDEFINED)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
     from_value::<Vec<BackupInfo>>(result).map_err(|e| e.to_string())
 }
 
@@ -35,7 +37,9 @@ async fn create_backup(max_backups: u32) -> Result<String, String> {
         max_backups: u32,
     }
     let args = to_value(&Args { max_backups }).map_err(|e| e.to_string())?;
-    let result = invoke("create_backup", args).await;
+    let result = invoke("create_backup", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
     from_value::<String>(result).map_err(|e| e.to_string())
 }
 
@@ -45,12 +49,11 @@ async fn delete_backup(filename: String) -> Result<(), String> {
         filename: String,
     }
     let args = to_value(&Args { filename }).map_err(|e| e.to_string())?;
-    let result = invoke("delete_backup", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    let _ = invoke("delete_backup", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 #[function_component(BackupsTabBody)]
@@ -71,10 +74,14 @@ pub fn backups_tab_body() -> Html {
 
         use_effect_with((), move |_| {
             spawn_local(async move {
-                let result = invoke("get_app_data_dir", JsValue::UNDEFINED).await;
-                if let Ok(path) = from_value::<String>(result) {
-                    app_data_dir.set(Some(path));
+                match invoke("get_app_data_dir", JsValue::UNDEFINED).await {
+                    Ok(result) => match from_value::<String>(result) {
+                        Ok(path) => app_data_dir.set(Some(path)),
+                        Err(e) => error.set(Some(e.to_string())),
+                    },
+                    Err(e) => error.set(Some(e.as_string().unwrap_or("Unknown error".to_string()))),
                 }
+
                 match fetch_backups().await {
                     Ok(data) => backups.set(data),
                     Err(e) => error.set(Some(e)),
@@ -345,5 +352,36 @@ pub fn backups_tab_body() -> Html {
                 </div>
             </section>
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_size_bytes() {
+        let size = 1023;
+        let formatted_string = format_size(size);
+
+        assert_eq!(formatted_string, "1023 B");
+    }
+
+    #[test]
+    fn test_format_size_kilobytes() {
+        let size = 52_000;
+        let formatted_string = format_size(size);
+
+        // Difference in values is due to kilo- vs kibi- representation
+        assert_eq!(formatted_string, "50.8 KB");
+    }
+
+    #[test]
+    fn test_format_size_megabytes() {
+        let size = 12_300_000;
+        let formatted_string = format_size(size);
+
+        // Difference in values is due to mega- vs mebi- representation
+        assert_eq!(formatted_string, "11.7 MB");
     }
 }

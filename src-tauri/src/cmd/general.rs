@@ -1,5 +1,5 @@
 use tauri::Manager;
-use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 
 #[tauri::command]
 pub fn exit_app(app: tauri::AppHandle) {
@@ -12,6 +12,20 @@ pub fn exit_app(app: tauri::AppHandle) {
                 app.exit(0);
             }
         });
+}
+
+#[tauri::command]
+pub async fn show_confirm_dialog(app: tauri::AppHandle, title: String, message: String) -> bool {
+    let (tx, rx) = std::sync::mpsc::channel();
+    app.dialog()
+        .message(message)
+        .title(title)
+        .kind(MessageDialogKind::Warning)
+        .buttons(MessageDialogButtons::OkCancel)
+        .show(move |confirmed| {
+            let _ = tx.send(confirmed);
+        });
+    rx.recv().unwrap_or(false)
 }
 
 #[tauri::command]

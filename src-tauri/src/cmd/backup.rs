@@ -30,7 +30,10 @@ pub async fn list_backups(app: tauri::AppHandle) -> Result<Vec<BackupInfo>, Stri
         .filter_map(|entry| {
             let entry = entry.ok()?;
             let name = entry.file_name().to_string_lossy().to_string();
-            if !name.ends_with(".db") {
+            if !std::path::Path::new(&name)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("db"))
+            {
                 return None;
             }
             let metadata = entry.metadata().ok()?;
@@ -39,8 +42,10 @@ pub async fn list_backups(app: tauri::AppHandle) -> Result<Vec<BackupInfo>, Stri
             let created_at = name
                 .strip_prefix("backup_")
                 .and_then(|s| s.strip_suffix(".db"))
-                .map(|s| s.replace('_', " ").replace('-', ":").replacen(':', "-", 2))
-                .unwrap_or_else(|| name.clone());
+                .map_or_else(
+                    || name.clone(),
+                    |s| s.replace('_', " ").replace('-', ":").replacen(':', "-", 2),
+                );
 
             Some(BackupInfo {
                 filename: name,
@@ -71,7 +76,7 @@ pub async fn create_backup(app: tauri::AppHandle, max_backups: u32) -> Result<St
     let filename = format!("backup_{}.db", format_timestamp(now));
     let dest = dir.join(&filename);
 
-    fs::copy(&src, &dest).map_err(|e| format!("Failed to copy database: {}", e))?;
+    fs::copy(&src, &dest).map_err(|e| format!("Failed to copy database: {e}"))?;
 
     let wal = src.with_extension("db-wal");
     let shm = src.with_extension("db-shm");
@@ -90,7 +95,9 @@ pub async fn create_backup(app: tauri::AppHandle, max_backups: u32) -> Result<St
 #[tauri::command]
 pub async fn delete_backup(app: tauri::AppHandle, filename: String) -> Result<(), String> {
     if !filename.starts_with("backup_")
-        || !filename.ends_with(".db")
+        || !std::path::Path::new(&filename)
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("db"))
         || filename.contains('/')
         || filename.contains('\\')
     {
@@ -114,7 +121,11 @@ fn prune_backups(dir: &PathBuf, max_backups: u32) -> Result<(), String> {
         .filter_map(|e| {
             let e = e.ok()?;
             let name = e.file_name().to_string_lossy().to_string();
-            if name.starts_with("backup_") && name.ends_with(".db") {
+            if name.starts_with("backup_")
+                && std::path::Path::new(&name)
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("db"))
+            {
                 Some(name)
             } else {
                 None
@@ -144,17 +155,14 @@ fn format_timestamp(secs: u64) -> String {
 
     let (year, month, day) = days_to_ymd(days);
 
-    format!(
-        "{:04}-{:02}-{:02}_{:02}-{:02}-{:02}",
-        year, month, day, hour, min, sec
-    )
+    format!("{year:04}-{month:02}-{day:02}_{hour:02}-{min:02}-{sec:02}")
 }
 
 fn days_to_ymd(days: u64) -> (u64, u64, u64) {
-    let mut d = days + 719468;
-    let era = d / 146097;
-    d %= 146097;
-    let yoe = (d - d / 1460 + d / 36524 - d / 146096) / 365;
+    let mut d = days + 719_468;
+    let era = d / 146_097;
+    d %= 146_097;
+    let yoe = (d - d / 1460 + d / 36524 - d / 146_096) / 365;
     let y = yoe + era * 400;
     let doy = d - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
@@ -162,4 +170,34 @@ fn days_to_ymd(days: u64) -> (u64, u64, u64) {
     let month = if mp < 10 { mp + 3 } else { mp - 9 };
     let year = if month <= 2 { y + 1 } else { y };
     (year, month, day)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_days_to_ymd() {
+        // Start of Unix Epoch time
+        let days = 0;
+        let (year, month, day) = days_to_ymd(days);
+
+        let (expected_year, expected_month, expected_day) = (1970, 1, 1);
+
+        assert_eq!(
+            (year, month, day),
+            (expected_year, expected_month, expected_day)
+        );
+    }
+
+    #[test]
+    fn test_format_timestamp() {
+        // Friday, July 14, 2017 at 2:40:00 AM UTC
+        let seconds = 1_500_000_000;
+        let formatted_timestamp = format_timestamp(seconds);
+
+        let expected_timestamp = "2017-07-14_02-40-00";
+
+        assert_eq!(formatted_timestamp, expected_timestamp);
+    }
 }

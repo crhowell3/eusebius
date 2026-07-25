@@ -1,42 +1,37 @@
 use std::collections::HashSet;
 
 use serde::Serialize;
-use serde_wasm_bindgen::{from_value, to_value};
-use wasm_bindgen::JsValue;
+use serde_wasm_bindgen::to_value;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use crate::utils::invoke;
-use shared::Baptism;
+use crate::components::sorting::{SortDir, SortState, sort_icon};
+use crate::on_sort;
+use crate::utils::{fetch_records, invoke};
+use models::Baptism;
 
 #[derive(Properties, PartialEq)]
 pub struct BaptismsTableProps {
     pub refresh_trigger: u32,
 }
 
-async fn fetch_baptisms() -> Result<Vec<Baptism>, String> {
-    let result = invoke("get_baptisms", JsValue::UNDEFINED).await;
-    from_value::<Vec<Baptism>>(result).map_err(|e| e.to_string())
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct DeleteBaptismsArgs {
-    family_ids: Vec<String>,
-}
-
 async fn delete_baptisms(family_ids: Vec<String>) -> Result<(), String> {
-    let args = to_value(&DeleteBaptismsArgs { family_ids }).map_err(|e| e.to_string())?;
-    let result = invoke("delete_baptisms", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
+    #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Args {
+        family_ids: Vec<String>,
     }
+    let args = to_value(&Args { family_ids }).map_err(|e| e.to_string())?;
+    let _ = invoke("delete_baptisms", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Default, Clone, PartialEq)]
 enum SortColumn {
+    #[default]
     FamilyId,
     LastName,
     FirstName,
@@ -45,45 +40,7 @@ enum SortColumn {
     Location,
 }
 
-#[derive(Clone, PartialEq)]
-enum SortDir {
-    Asc,
-    Desc,
-}
-
-#[derive(Clone, PartialEq)]
-struct SortState {
-    column: SortColumn,
-    dir: SortDir,
-}
-
-impl SortState {
-    fn default() -> Self {
-        Self {
-            column: SortColumn::FamilyId,
-            dir: SortDir::Asc,
-        }
-    }
-
-    fn toggle(&self, col: SortColumn) -> Self {
-        if self.column == col {
-            Self {
-                column: col,
-                dir: match self.dir {
-                    SortDir::Asc => SortDir::Desc,
-                    SortDir::Desc => SortDir::Asc,
-                },
-            }
-        } else {
-            Self {
-                column: col,
-                dir: SortDir::Asc,
-            }
-        }
-    }
-}
-
-fn sort_baptisms(baptisms: &[Baptism], sort: &SortState) -> Vec<Baptism> {
+fn sort_baptisms(baptisms: &[Baptism], sort: &SortState<SortColumn>) -> Vec<Baptism> {
     let mut sorted = baptisms.to_vec();
     sorted.sort_by(|a, b| {
         let ord = match sort.column {
@@ -100,38 +57,6 @@ fn sort_baptisms(baptisms: &[Baptism], sort: &SortState) -> Vec<Baptism> {
         }
     });
     sorted
-}
-
-fn sort_icon(active: bool, dir: &SortDir) -> Html {
-    if !active {
-        return html! {
-            <svg class="sort-icon sort-icon--inactive" xmlns="http://www.w3.org/2000/svg"
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 15l5 5 5-5"/>
-                <path d="M7 9l5-5 5 5"/>
-            </svg>
-        };
-    }
-    match dir {
-        SortDir::Asc => html! {
-            <svg class="sort-icon sort-icon--active" xmlns="http://www.w3.org/2000/svg"
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 15l5 5 5-5"/>
-            </svg>
-        },
-        SortDir::Desc => html! {
-            <svg class="sort-icon sort-icon--active" xmlns="http://www.w3.org/2000/svg"
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 9l5-5 5 5"/>
-            </svg>
-        },
-    }
 }
 
 #[function_component(BaptismsTable)]
@@ -151,7 +76,7 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
 
         use_effect_with(trigger, move |_| {
             spawn_local(async move {
-                match fetch_baptisms().await {
+                match fetch_records::<Baptism>("get_baptisms").await {
                     Ok(data) => {
                         baptisms.set(data);
                         error.set(None);
@@ -174,37 +99,12 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
     let some_checked = !(*selected).is_empty();
     let selected_count = (*selected).len();
 
-    let on_sort_family_id = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::FamilyId)))
-    };
-
-    let on_sort_last_name = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::LastName)))
-    };
-
-    let on_sort_first_name = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::FirstName)))
-    };
-
-    let on_sort_date_baptized = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| {
-            sort.set((*sort).clone().toggle(SortColumn::DateBaptized))
-        })
-    };
-
-    let on_sort_witness = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::Witness)))
-    };
-
-    let on_sort_location = {
-        let sort = sort.clone();
-        Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle(SortColumn::Location)))
-    };
+    let on_sort_family_id = on_sort!(SortColumn::FamilyId, sort);
+    let on_sort_last_name = on_sort!(SortColumn::LastName, sort);
+    let on_sort_first_name = on_sort!(SortColumn::FirstName, sort);
+    let on_sort_date_baptized = on_sort!(SortColumn::DateBaptized, sort);
+    let on_sort_witness = on_sort!(SortColumn::Witness, sort);
+    let on_sort_location = on_sort!(SortColumn::Location, sort);
 
     let on_row_toggle = {
         let selected = selected.clone();
@@ -267,7 +167,6 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
 
     html! {
         <section class="works-table-card">
-
             <div class="works-table-toolbar">
                 <div class="works-table-toolbar-left">
                     <h3 class="works-table-title">{ "Baptism Records" }</h3>
@@ -330,9 +229,13 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                 } else {
                     <table class="works-table">
                         <colgroup>
-                            <col class="works-col-check" />
-                            <col class="works-col-code" />
-                            <col class="works-col-description" />
+                            <col class="width: 44px" />
+                            <col class="width: 90px" />
+                            <col style="width: 130px" />
+                            <col style="width: 130px" />
+                            <col style="width: 150px" />
+                            <col style="width: 200px" />
+                            <col style="width: 250px" />
                         </colgroup>
                         <thead>
                             <tr>

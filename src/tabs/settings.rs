@@ -6,10 +6,12 @@ use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 use crate::utils::{apply_theme, invoke};
-use shared::AppSettings;
+use models::AppSettings;
 
 async fn fetch_settings() -> Result<AppSettings, String> {
-    let result = invoke("load_settings", JsValue::UNDEFINED).await;
+    let result = invoke("load_settings", JsValue::UNDEFINED)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
     from_value::<AppSettings>(result).map_err(|e| e.to_string())
 }
 
@@ -19,16 +21,17 @@ async fn persist_settings(settings: AppSettings) -> Result<(), String> {
         settings: AppSettings,
     }
     let args = to_value(&Args { settings }).map_err(|e| e.to_string())?;
-    let result = invoke("save_settings", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    let _ = invoke("save_settings", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 async fn do_reset() -> Result<AppSettings, String> {
-    let result = invoke("reset_settings", JsValue::UNDEFINED).await;
+    let result = invoke("reset_settings", JsValue::UNDEFINED)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
     from_value::<AppSettings>(result).map_err(|e| e.to_string())
 }
 

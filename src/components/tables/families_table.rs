@@ -1,13 +1,14 @@
 use std::collections::HashSet;
 
 use serde::Serialize;
-use serde_wasm_bindgen::{from_value, to_value};
-use wasm_bindgen::JsValue;
+use serde_wasm_bindgen::to_value;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use crate::utils::invoke;
-use shared::Family;
+use crate::components::sorting::{SortDir, SortState, sort_icon};
+use crate::on_sort;
+use crate::utils::{fetch_records, invoke};
+use models::Family;
 
 #[derive(Properties, PartialEq)]
 pub struct FamiliesTableProps {
@@ -16,29 +17,23 @@ pub struct FamiliesTableProps {
     pub selected_family_id: Option<String>,
 }
 
-async fn fetch_families() -> Result<Vec<Family>, String> {
-    let result = invoke("get_families", JsValue::UNDEFINED).await;
-    from_value::<Vec<Family>>(result).map_err(|e| e.to_string())
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct DeleteFamiliesArgs {
-    family_ids: Vec<String>,
-}
-
 async fn delete_families(family_ids: Vec<String>) -> Result<(), String> {
-    let args = to_value(&DeleteFamiliesArgs { family_ids }).map_err(|e| e.to_string())?;
-    let result = invoke("delete_families", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
+    #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Args {
+        family_ids: Vec<String>,
     }
+    let args = to_value(&Args { family_ids }).map_err(|e| e.to_string())?;
+    let _ = invoke("delete_families", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Default, Clone, PartialEq)]
 enum SortColumn {
+    #[default]
     FamilyId,
     MailRoute,
     LastName,
@@ -50,45 +45,7 @@ enum SortColumn {
     State,
 }
 
-#[derive(Clone, PartialEq)]
-enum SortDir {
-    Asc,
-    Desc,
-}
-
-#[derive(Clone, PartialEq)]
-struct SortState {
-    column: SortColumn,
-    dir: SortDir,
-}
-
-impl SortState {
-    fn default() -> Self {
-        Self {
-            column: SortColumn::FamilyId,
-            dir: SortDir::Asc,
-        }
-    }
-
-    fn toggle(&self, col: SortColumn) -> Self {
-        if self.column == col {
-            Self {
-                column: col,
-                dir: match self.dir {
-                    SortDir::Asc => SortDir::Desc,
-                    SortDir::Desc => SortDir::Asc,
-                },
-            }
-        } else {
-            Self {
-                column: col,
-                dir: SortDir::Asc,
-            }
-        }
-    }
-}
-
-fn sort_families(families: &[Family], sort: &SortState) -> Vec<Family> {
+fn sort_families(families: &[Family], sort: &SortState<SortColumn>) -> Vec<Family> {
     let mut sorted = families.to_vec();
     sorted.sort_by(|a, b| {
         let ord = match sort.column {
@@ -108,38 +65,6 @@ fn sort_families(families: &[Family], sort: &SortState) -> Vec<Family> {
         }
     });
     sorted
-}
-
-fn sort_icon(active: bool, dir: &SortDir) -> Html {
-    if !active {
-        return html! {
-            <svg class="sort-icon sort-icon--inactive" xmlns="http://www.w3.org/2000/svg"
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 15l5 5 5-5"/>
-                <path d="M7 9l5-5 5 5"/>
-            </svg>
-        };
-    }
-    match dir {
-        SortDir::Asc => html! {
-            <svg class="sort-icon sort-icon--active" xmlns="http://www.w3.org/2000/svg"
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 15l5 5 5-5"/>
-            </svg>
-        },
-        SortDir::Desc => html! {
-            <svg class="sort-icon sort-icon--active" xmlns="http://www.w3.org/2000/svg"
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 9l5-5 5 5"/>
-            </svg>
-        },
-    }
 }
 
 fn bool_cell(value: bool) -> Html {
@@ -179,7 +104,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
 
         use_effect_with(trigger, move |_| {
             spawn_local(async move {
-                match fetch_families().await {
+                match fetch_records::<Family>("get_families").await {
                     Ok(data) => {
                         members.set(data);
                         error.set(None);
@@ -202,22 +127,15 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
     let some_checked = !(*selected).is_empty();
     let selected_count = (*selected).len();
 
-    macro_rules! on_sort {
-        ($col:expr) => {{
-            let sort = sort.clone();
-            Callback::from(move |_: MouseEvent| sort.set((*sort).clone().toggle($col)))
-        }};
-    }
-
-    let on_sort_family_id = on_sort!(SortColumn::FamilyId);
-    let on_sort_mail_route = on_sort!(SortColumn::MailRoute);
-    let on_sort_last_name = on_sort!(SortColumn::LastName);
-    let on_sort_first_name = on_sort!(SortColumn::FirstName);
-    let on_sort_date_of_birth = on_sort!(SortColumn::DateOfBirth);
-    let on_sort_ann_month = on_sort!(SortColumn::AnniversaryMonth);
-    let on_sort_ann_day = on_sort!(SortColumn::AnniversaryDay);
-    let on_sort_city = on_sort!(SortColumn::City);
-    let on_sort_state = on_sort!(SortColumn::State);
+    let on_sort_family_id = on_sort!(SortColumn::FamilyId, sort);
+    let on_sort_mail_route = on_sort!(SortColumn::MailRoute, sort);
+    let on_sort_last_name = on_sort!(SortColumn::LastName, sort);
+    let on_sort_first_name = on_sort!(SortColumn::FirstName, sort);
+    let on_sort_date_of_birth = on_sort!(SortColumn::DateOfBirth, sort);
+    let on_sort_ann_month = on_sort!(SortColumn::AnniversaryMonth, sort);
+    let on_sort_ann_day = on_sort!(SortColumn::AnniversaryDay, sort);
+    let on_sort_city = on_sort!(SortColumn::City, sort);
+    let on_sort_state = on_sort!(SortColumn::State, sort);
 
     let on_row_toggle = {
         let selected = selected.clone();

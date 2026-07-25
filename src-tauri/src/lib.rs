@@ -1,92 +1,27 @@
 pub mod cmd;
-use crate::cmd::*;
+
+use crate::cmd::{DbState, backup, db, general, settings};
+
 use tauri::Manager;
-
-const DEATHS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS deaths (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    first_name      TEXT NOT NULL,
-    last_name       TEXT NOT NULL,
-    date_of_death   TEXT NOT NULL
-)";
-
-const WORKS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS works (
-    work_code       TEXT PRIMARY KEY NOT NULL,
-    description     TEXT NOT NULL
-)";
-
-const BAPTISMS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS baptisms (
-    family_id       TEXT PRIMARY KEY NOT NULL,
-    last_name       TEXT NOT NULL,
-    first_name      TEXT NOT NULL,
-    date_baptized   TEXT NOT NULL,
-    witness         TEXT NOT NULL,
-    location        TEXT NOT NULL
-)";
-
-const FAMILIES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS families (
-    family_id               TEXT PRIMARY KEY NOT NULL,
-    mail_route              TEXT NOT NULL,
-    first_name              TEXT NOT NULL,
-    last_name               TEXT NOT NULL,
-    is_member               INTEGER NOT NULL DEFAULT 0,
-    is_active               INTEGER NOT NULL DEFAULT 0,
-    date_of_birth           TEXT NOT NULL,
-    anniversary_month       TEXT NOT NULL,
-    anniversary_day         TEXT NOT NULL,
-    home_phone              TEXT NOT NULL,
-    cell_phone              TEXT NOT NULL,
-    work_phone              TEXT NOT NULL,
-    address                 TEXT NOT NULL,
-    city                    TEXT NOT NULL,
-    state                   TEXT NOT NULL,
-    zip                     TEXT NOT NULL,
-    email_address           TEXT NOT NULL,
-    on_bulletin_email_list  INTEGER NOT NULL DEFAULT 0
-)";
-
-const SPOUSES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS spouses (
-    family_id               TEXT PRIMARY KEY NOT NULL,
-    first_name              TEXT NOT NULL,
-    last_name               TEXT NOT NULL,
-    is_member               INTEGER NOT NULL DEFAULT 0,
-    is_active               INTEGER NOT NULL DEFAULT 0,
-    date_of_birth           TEXT,
-    cell_phone              TEXT,
-    work_phone              TEXT,
-    email_address           TEXT,
-    on_bulletin_email_list  INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (family_id) REFERENCES families(family_id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE
-)";
-
-const CHILDREN_INIT: &'static str = "CREATE TABLE IF NOT EXISTS children (
-    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
-    family_id               TEXT NOT NULL,
-    first_name              TEXT NOT NULL,
-    last_name               TEXT NOT NULL,
-    is_member               INTEGER NOT NULL DEFAULT 0,
-    is_active               INTEGER NOT NULL DEFAULT 0,
-    date_of_birth           TEXT,
-    cell_phone              TEXT,
-    work_phone              TEXT,
-    email_address           TEXT,
-    on_bulletin_email_list  INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (family_id) REFERENCES families(family_id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE
-)";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            let app_dir = app.path().app_data_dir().expect("failed to get app dir");
-            std::fs::create_dir_all(&app_dir).expect("failed to create app dir");
+            let app_dir = app.path().app_data_dir()?;
+            std::fs::create_dir_all(&app_dir)?;
             let db_path = format!("sqlite:{}/eusebius.db", app_dir.display());
 
             let pool = tauri::async_runtime::block_on(async {
                 let pool = sqlx::sqlite::SqlitePoolOptions::new()
+                    .after_connect(|conn, _| {
+                        Box::pin(async move {
+                            sqlx::query("PRAGMA foreign_keys = ON")
+                                .execute(conn)
+                                .await?;
+                            Ok(())
+                        })
+                    })
                     .connect_with(
                         db_path
                             .parse::<sqlx::sqlite::SqliteConnectOptions>()
@@ -96,47 +31,16 @@ pub fn run() {
                     .await
                     .expect("failed to connect to database");
 
-                sqlx::query("PRAGMA foreign_keys = ON")
-                    .execute(&pool)
+                sqlx::migrate!("./migrations")
+                    .run(&pool)
                     .await
-                    .expect("failed to enable foreign keys");
-
-                sqlx::query(DEATHS_INIT)
-                    .execute(&pool)
-                    .await
-                    .expect("Failed to initialize DEATHS schema");
-
-                sqlx::query(WORKS_INIT)
-                    .execute(&pool)
-                    .await
-                    .expect("failed to initialize WORKS schema");
-
-                sqlx::query(BAPTISMS_INIT)
-                    .execute(&pool)
-                    .await
-                    .expect("failed to initialize BAPTISMS schema");
-
-                sqlx::query(FAMILIES_INIT)
-                    .execute(&pool)
-                    .await
-                    .expect("failed to initialize FAMILIES schema");
-
-                sqlx::query(SPOUSES_INIT)
-                    .execute(&pool)
-                    .await
-                    .expect("failed to initialize SPOUSES schema");
-
-                sqlx::query(CHILDREN_INIT)
-                    .execute(&pool)
-                    .await
-                    .expect("failed to initialize CHILDREN schema");
+                    .expect("failed to run database migrations");
 
                 pool
             });
 
             app.manage(DbState(pool));
-
-            app.manage(load_initial_settings(app.handle()));
+            app.manage(cmd::load_initial_settings(app.handle()));
 
             Ok(())
         })
@@ -144,33 +48,49 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(tauri::generate_handler![
-            add_child,
-            save_spouse,
-            add_baptism,
-            add_family,
-            add_death,
-            get_deaths,
-            get_baptisms,
-            get_app_data_dir,
-            delete_baptisms,
-            delete_deaths,
-            delete_families,
-            delete_works,
-            delete_children,
-            get_children_by_family,
-            get_families,
-            get_spouse,
-            get_works,
-            add_work,
-            exit_app,
-            list_tables,
-            save_children,
-            list_backups,
-            create_backup,
-            delete_backup,
-            load_settings,
-            save_settings,
-            reset_settings,
+            // Families
+            db::family::add_family,
+            db::family::get_families,
+            db::family::delete_families,
+            // Spouses
+            db::spouse::save_spouse,
+            db::spouse::get_spouse,
+            // Children
+            db::child::add_child,
+            db::child::save_children,
+            db::child::get_children_by_family,
+            db::child::delete_children,
+            // Baptisms
+            db::baptism::add_baptism,
+            db::baptism::get_baptisms,
+            db::baptism::delete_baptisms,
+            // Deaths
+            db::death::add_death,
+            db::death::get_deaths,
+            db::death::delete_deaths,
+            // Works
+            db::works::add_work,
+            db::works::get_works,
+            db::works::update_work,
+            db::works::delete_works,
+            // Categories
+            db::category::get_categories,
+            db::category::add_category,
+            db::category::update_category,
+            db::category::delete_categories,
+            // Settings
+            settings::load_settings,
+            settings::save_settings,
+            settings::reset_settings,
+            // Backups
+            backup::list_backups,
+            backup::create_backup,
+            backup::delete_backup,
+            // App / misc
+            general::get_app_data_dir,
+            general::exit_app,
+            general::show_confirm_dialog,
+            db::list_tables,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

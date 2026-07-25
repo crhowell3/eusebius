@@ -6,7 +6,7 @@ use web_sys::{HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
 use crate::utils::invoke;
-use shared::{Family, GenericAction};
+use models::{Family, GenericAction};
 
 #[derive(Serialize)]
 struct AddFamilyArgs {
@@ -15,12 +15,11 @@ struct AddFamilyArgs {
 
 async fn add_family(family: Family) -> Result<(), String> {
     let args = to_value(&AddFamilyArgs { family }).map_err(|e| e.to_string())?;
-    let result = invoke("add_family", args).await;
-    if result.is_undefined() || result.is_null() {
-        Ok(())
-    } else {
-        Err(result.as_string().unwrap_or("Unknown error".to_string()))
-    }
+    let _ = invoke("add_family", args)
+        .await
+        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+
+    Ok(())
 }
 
 fn is_valid_mail_route(s: &str) -> bool {

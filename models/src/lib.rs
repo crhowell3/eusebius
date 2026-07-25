@@ -42,11 +42,14 @@ pub struct TableInfo {
     pub path: String,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Work {
-    pub work_code: String,
+    pub id: i64,
     pub description: String,
+    pub category_id: i64,
+    pub category_tag: String,
+    pub category_name: String,
 }
 
 impl yew::prelude::Reducible for Work {
@@ -57,8 +60,12 @@ impl yew::prelude::Reducible for Work {
             GenericAction::SetField { name, value } => {
                 let mut updated = (*self).clone();
                 match name.as_str() {
-                    "work_code" => updated.work_code = value,
                     "description" => updated.description = value,
+                    "category_id" => {
+                        if let Ok(id) = value.parse::<i64>() {
+                            updated.category_id = id;
+                        }
+                    }
                     _ => {}
                 }
                 std::rc::Rc::new(updated)
@@ -68,15 +75,6 @@ impl yew::prelude::Reducible for Work {
                 std::rc::Rc::new(updated)
             }
             GenericAction::Reset => std::rc::Rc::new(Work::default()),
-        }
-    }
-}
-
-impl Default for Work {
-    fn default() -> Self {
-        Self {
-            work_code: String::new(),
-            description: String::new(),
         }
     }
 }
@@ -153,6 +151,7 @@ pub struct Child {
 }
 
 impl Child {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -208,6 +207,7 @@ pub struct Spouse {
 }
 
 impl Spouse {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -272,6 +272,7 @@ pub struct Family {
 }
 
 impl Family {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -328,6 +329,7 @@ pub struct Death {
 }
 
 impl Death {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -353,6 +355,47 @@ impl yew::prelude::Reducible for Death {
                 std::rc::Rc::new(updated)
             }
             GenericAction::Reset => std::rc::Rc::new(Death::default()),
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, Default, PartialEq)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
+pub struct Category {
+    pub id: i64,
+    pub tag: String,
+    pub name: String,
+}
+
+impl Category {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+pub enum CategoryAction {
+    SetName(String),
+    SetTag(String),
+    Reset,
+}
+
+impl yew::prelude::Reducible for Category {
+    type Action = CategoryAction;
+
+    fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
+        match action {
+            CategoryAction::SetName(name) => std::rc::Rc::new(Self {
+                id: self.id,
+                tag: self.tag.clone(),
+                name,
+            }),
+            CategoryAction::SetTag(tag) => std::rc::Rc::new(Self {
+                id: self.id,
+                tag,
+                name: self.name.clone(),
+            }),
+            CategoryAction::Reset => std::rc::Rc::new(Category::default()),
         }
     }
 }
