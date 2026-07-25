@@ -42,13 +42,26 @@ pub struct TableInfo {
     pub path: String,
 }
 
-#[derive(Default, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Work {
     pub id: i64,
     pub description: String,
+    pub category_id: i64,
     pub category_tag: String,
     pub category_name: String,
+}
+
+impl Default for Work {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            description: String::new(),
+            category_id: 1,
+            category_tag: String::new(),
+            category_name: String::new(),
+        }
+    }
 }
 
 impl yew::prelude::Reducible for Work {
@@ -60,7 +73,11 @@ impl yew::prelude::Reducible for Work {
                 let mut updated = (*self).clone();
                 match name.as_str() {
                     "description" => updated.description = value,
-                    "category_tag" => updated.category_tag = value,
+                    "category_id" => {
+                        if let Ok(id) = value.parse::<i64>() {
+                            updated.category_id = id;
+                        }
+                    }
                     _ => {}
                 }
                 std::rc::Rc::new(updated)
@@ -353,6 +370,7 @@ impl yew::prelude::Reducible for Death {
 #[derive(Clone, Serialize, Deserialize, Default, PartialEq)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Category {
+    pub id: i64,
     pub tag: String,
     pub name: String,
 }
@@ -375,10 +393,12 @@ impl yew::prelude::Reducible for Category {
     fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
         match action {
             CategoryAction::SetName(name) => std::rc::Rc::new(Self {
+                id: self.id,
                 tag: self.tag.clone(),
                 name,
             }),
             CategoryAction::SetTag(tag) => std::rc::Rc::new(Self {
+                id: self.id,
                 tag,
                 name: self.name.clone(),
             }),

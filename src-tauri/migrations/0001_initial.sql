@@ -1,38 +1,37 @@
-pub const ALL_TABLES: &[&str] = &[
-    DEATHS_INIT,
-    WORKS_INIT,
-    BAPTISMS_INIT,
-    FAMILIES_INIT,
-    SPOUSES_INIT,
-    CHILDREN_INIT,
-];
+CREATE TABLE IF NOT EXISTS categories (
+    id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    tag  TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL
+);
 
-const DEATHS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS deaths (
+INSERT OR IGNORE INTO categories (tag, name) VALUES ('MISC', 'Miscellaneous');
+
+CREATE TABLE IF NOT EXISTS deaths (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     first_name      TEXT NOT NULL,
     last_name       TEXT NOT NULL,
     date_of_death   TEXT NOT NULL
-)";
+);
 
-const WORKS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS works (
+CREATE TABLE IF NOT EXISTS works (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     description     TEXT NOT NULL,
-    category_tag    TEXT NOT NULL DEFAULT 'MISC',
-    FOREIGN KEY (category_tag) REFERENCES categories(tag)
+    category_id     INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (category_id) REFERENCES categories(id)
         ON UPDATE CASCADE
         ON DELETE SET DEFAULT
-)";
+);
 
-const BAPTISMS_INIT: &'static str = "CREATE TABLE IF NOT EXISTS baptisms (
+CREATE TABLE IF NOT EXISTS baptisms (
     family_id       TEXT PRIMARY KEY NOT NULL,
     last_name       TEXT NOT NULL,
     first_name      TEXT NOT NULL,
     date_baptized   TEXT NOT NULL,
     witness         TEXT NOT NULL,
     location        TEXT NOT NULL
-)";
+);
 
-const FAMILIES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS families (
+CREATE TABLE IF NOT EXISTS families (
     family_id               TEXT PRIMARY KEY NOT NULL,
     mail_route              TEXT NOT NULL,
     first_name              TEXT NOT NULL,
@@ -51,9 +50,9 @@ const FAMILIES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS families (
     zip                     TEXT NOT NULL,
     email_address           TEXT NOT NULL,
     on_bulletin_email_list  INTEGER NOT NULL DEFAULT 0
-)";
+);
 
-const SPOUSES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS spouses (
+CREATE TABLE IF NOT EXISTS spouses (
     family_id               TEXT PRIMARY KEY NOT NULL,
     first_name              TEXT NOT NULL,
     last_name               TEXT NOT NULL,
@@ -67,9 +66,9 @@ const SPOUSES_INIT: &'static str = "CREATE TABLE IF NOT EXISTS spouses (
     FOREIGN KEY (family_id) REFERENCES families(family_id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-)";
+);
 
-const CHILDREN_INIT: &'static str = "CREATE TABLE IF NOT EXISTS children (
+CREATE TABLE IF NOT EXISTS children (
     id                      INTEGER PRIMARY KEY AUTOINCREMENT,
     family_id               TEXT NOT NULL,
     first_name              TEXT NOT NULL,
@@ -84,4 +83,4 @@ const CHILDREN_INIT: &'static str = "CREATE TABLE IF NOT EXISTS children (
     FOREIGN KEY (family_id) REFERENCES families(family_id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-)";
+);

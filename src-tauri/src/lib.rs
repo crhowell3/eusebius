@@ -1,5 +1,4 @@
 pub mod cmd;
-mod schema;
 
 use crate::cmd::db::*;
 use crate::cmd::*;
@@ -14,7 +13,32 @@ pub fn run() {
             std::fs::create_dir_all(&app_dir)?;
             let db_path = format!("sqlite:{}/eusebius.db", app_dir.display());
 
-            let pool = tauri::async_runtime::block_on(init_database(&db_path))?;
+            let pool = tauri::async_runtime::block_on(async {
+                let pool = sqlx::sqlite::SqlitePoolOptions::new()
+                    .after_connect(|conn, _| {
+                        Box::pin(async move {
+                            sqlx::query("PRAGMA foreign_keys = ON")
+                                .execute(conn)
+                                .await?;
+                            Ok(())
+                        })
+                    })
+                    .connect_with(
+                        db_path
+                            .parse::<sqlx::sqlite::SqliteConnectOptions>()
+                            .unwrap()
+                            .create_if_missing(true),
+                    )
+                    .await
+                    .expect("failed to connect to database");
+
+                sqlx::migrate!("./migrations")
+                    .run(&pool)
+                    .await
+                    .expect("failed to run database migrations");
+
+                pool
+            });
 
             app.manage(DbState(pool));
             app.manage(load_initial_settings(app.handle()));
@@ -71,26 +95,4 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-async fn init_database(db_path: &str) -> Result<sqlx::SqlitePool, Box<dyn std::error::Error>> {
-    let pool = sqlx::sqlite::SqlitePoolOptions::new()
-        .connect_with(
-            db_path
-                .parse::<sqlx::sqlite::SqliteConnectOptions>()?
-                .create_if_missing(true),
-        )
-        .await?;
-
-    sqlx::query("PRAGMA foreign_keys = ON")
-        .execute(&pool)
-        .await?;
-
-    for create_table in schema::ALL_TABLES {
-        sqlx::query(*create_table).execute(&pool).await?;
-    }
-
-    setup_categories_table(&pool).await?;
-
-    Ok(pool)
 }

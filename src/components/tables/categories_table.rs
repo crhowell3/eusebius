@@ -9,12 +9,12 @@ use crate::components::icons::{EditBox, Eye, Save, TrashCan};
 use crate::utils::{fetch_records, invoke};
 use models::Category;
 
-async fn delete_categories(tags: Vec<String>) -> Result<(), String> {
+async fn delete_categories(ids: Vec<i64>) -> Result<(), String> {
     #[derive(Serialize)]
     struct Args {
-        tags: Vec<String>,
+        ids: Vec<i64>,
     }
-    let args = to_value(&Args { tags }).map_err(|e| e.to_string())?;
+    let args = to_value(&Args { ids }).map_err(|e| e.to_string())?;
     let _ = invoke("delete_categories", args)
         .await
         .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
@@ -22,19 +22,15 @@ async fn delete_categories(tags: Vec<String>) -> Result<(), String> {
     Ok(())
 }
 
-async fn update_category(old_tag: String, new_tag: String, name: String) -> Result<(), String> {
+async fn update_category(id: i64, tag: String, name: String) -> Result<(), String> {
     #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
     struct Args {
-        old_tag: String,
-        new_tag: String,
+        id: i64,
+        tag: String,
         name: String,
     }
-    let args = to_value(&Args {
-        old_tag,
-        new_tag,
-        name,
-    })
-    .map_err(|e| e.to_string())?;
+    let args = to_value(&Args { id, tag, name }).map_err(|e| e.to_string())?;
     let _ = invoke("update_category", args)
         .await
         .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
@@ -59,11 +55,10 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
     let categories = use_state(Vec::<Category>::new);
     let saved_categories = use_state(Vec::<Category>::new);
     let error = use_state(|| None::<String>);
-    let selected = use_state(HashSet::<String>::new);
+    let selected = use_state(HashSet::<i64>::new);
     let initial_load = use_state(|| true);
     let mode = use_state(|| TableMode::View);
     let saving = use_state(|| false);
-    let original_tags = use_state(std::collections::HashMap::<String, String>::new);
 
     {
         let categories = categories.clone();
@@ -72,7 +67,6 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
         let selected = selected.clone();
         let initial_load = initial_load.clone();
         let trigger = props.refresh_trigger;
-        let original_tags = original_tags.clone();
 
         use_effect_with(trigger, move |_| {
             spawn_local(async move {
@@ -82,11 +76,6 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                         categories.set(data.clone());
                         error.set(None);
                         selected.set(HashSet::new());
-                        original_tags.set(
-                            data.iter()
-                                .map(|c| (c.tag.clone(), c.tag.clone()))
-                                .collect(),
-                        );
                     }
                     Err(e) => error.set(Some(e)),
                 }
@@ -102,12 +91,18 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
 
     let is_edit = *mode == TableMode::Edit;
 
-    let can_delete = some_checked && !(*selected).contains("MISC");
-    let all_checked = can_delete
+    let misc_id = (*categories)
+        .iter()
+        .find(|c| c.tag == "MISC")
+        .map(|c| c.id)
+        .unwrap_or(-1);
+
+    let deletable_count = (*categories).iter().filter(|c| c.id != misc_id).count();
+    let all_checked = deletable_count > 0
         && (*categories)
             .iter()
-            .filter(|c| c.tag != "MISC")
-            .all(|c| (*selected).contains(&c.tag));
+            .filter(|c| c.id != misc_id)
+            .all(|c| (*selected).contains(&c.id));
 
     let on_toggle_mode = {
         let mode = mode.clone();
@@ -128,15 +123,12 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
 
     let on_row_toggle = {
         let selected = selected.clone();
-        Callback::from(move |tag: String| {
-            if tag == "MISC" {
-                return;
-            }
+        Callback::from(move |id: i64| {
             let mut next = (*selected).clone();
-            if next.contains(&tag) {
-                next.remove(&tag);
+            if next.contains(&id) {
+                next.remove(&id);
             } else {
-                next.insert(tag);
+                next.insert(id);
             }
             selected.set(next);
         })
@@ -146,10 +138,10 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
         let categories = categories.clone();
         let selected = selected.clone();
         Callback::from(move |_: Event| {
-            let deletable: Vec<String> = (*categories)
+            let deletable: Vec<i64> = (*categories)
                 .iter()
-                .filter(|c| c.tag != "MISC")
-                .map(|c| c.tag.clone())
+                .filter(|c| c.id != misc_id)
+                .map(|c| c.id.clone())
                 .collect();
             if deletable.iter().all(|t| (*selected).contains(t)) {
                 selected.set(HashSet::new());
@@ -164,19 +156,19 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
         let categories = categories.clone();
         let on_category_delete = props.on_category_delete.clone();
         Callback::from(move |_: MouseEvent| {
-            let to_delete: Vec<String> = (*selected).iter().cloned().collect();
+            let to_delete: Vec<i64> = (*selected).iter().cloned().collect();
             let selected = selected.clone();
-            let works = categories.clone();
+            let categories = categories.clone();
             let on_category_delete = on_category_delete.clone();
             spawn_local(async move {
                 match delete_categories(to_delete).await {
                     Ok(_) => {
-                        let remaining = (*works)
+                        let remaining = (*categories)
                             .iter()
-                            .filter(|w| !(*selected).contains(&w.tag))
+                            .filter(|c| !(*selected).contains(&c.id))
                             .cloned()
                             .collect();
-                        works.set(remaining);
+                        categories.set(remaining);
                         selected.set(HashSet::new());
                         on_category_delete.emit(());
                     }
@@ -194,16 +186,18 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
         let error = error.clone();
         let saving = saving.clone();
         let mode = mode.clone();
-        let saved_snapshot = (*saved_categories).clone();
-        let original_tags = original_tags.clone();
+        let on_category_delete = props.on_category_delete.clone();
 
         Callback::from(move |_: MouseEvent| {
+            let snapshot = (*saved_categories).clone();
+            let categories = categories.clone();
+
             let changed: Vec<Category> = (*categories)
                 .iter()
-                .filter(|w| {
-                    !saved_snapshot
+                .filter(|c| {
+                    !snapshot
                         .iter()
-                        .any(|s| s.tag == w.tag && s.name == w.name)
+                        .any(|s| s.id == c.id && s.tag == c.tag && s.name == c.name)
                 })
                 .cloned()
                 .collect();
@@ -218,29 +212,24 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
             let error = error.clone();
             let saving = saving.clone();
             let mode = mode.clone();
-            let original_tags = original_tags.clone();
+            let on_category_delete = on_category_delete.clone();
             saving.set(true);
 
             spawn_local(async move {
                 let mut all_ok = true;
                 for cat in changed {
-                    let old_tag = (*original_tags)
-                        .get(&cat.tag)
-                        .cloned()
-                        .unwrap_or_else(|| cat.tag.clone());
-                    if let Err(e) =
-                        update_category(old_tag, cat.tag.clone(), cat.name.clone()).await
+                    if let Err(e) = update_category(cat.id, cat.tag.clone(), cat.name.clone()).await
                     {
                         error.set(Some(e));
                         all_ok = false;
                         break;
                     }
                 }
-
                 if all_ok {
                     saved_categories.set((*categories).clone());
                     error.set(None);
                     mode.set(TableMode::View);
+                    on_category_delete.emit(());
                 }
                 saving.set(false);
             });
@@ -250,18 +239,17 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
     let on_field_change = {
         let categories = categories.clone();
 
-        Callback::from(move |(tag, field, value): (String, &'static str, String)| {
+        Callback::from(move |(id, field, value): (i64, &'static str, String)| {
             categories.set({
                 let mut next = (*categories).clone();
-                if let Some(c) = next.iter_mut().find(|c| c.tag == tag) {
+                if let Some(c) = next.iter_mut().find(|c| c.id == id) {
                     match field {
                         "tag" => {
-                            let val = value
+                            c.tag = value
                                 .chars()
-                                .filter(|c| c.is_ascii_alphabetic())
+                                .filter(|ch| ch.is_ascii_alphabetic())
                                 .collect::<String>()
                                 .to_uppercase();
-                            c.tag = val;
                         }
                         "name" => c.name = value,
                         _ => {}
@@ -360,7 +348,7 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                         <colgroup>
                             { if is_edit { html! { <col style="width: 44px" /> } } else { html! {} } }
                             <col style="width: 80px" />   // tag
-                            <col class="width: 150px" />  // name
+                            <col style="width: 150px" />  // name
                             <col style="width: 100px" />  // protected badge
                         </colgroup>
                         <thead>
@@ -380,35 +368,31 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                             </tr>
                         </thead>
                         <tbody>
-                            { for categories.iter().map(|c| {
-                                let tag = c.tag.clone();
-                                let is_misc = c.tag == "MISC";
-                                let is_checked = (*selected).contains(&c.tag);
+                            { for categories.iter().enumerate().map(|(idx, c)| {
+                                let id = c.id.clone();
+                                let is_misc = c.id == misc_id;
+                                let is_checked = (*selected).contains(&c.id);
                                 let on_row_toggle = on_row_toggle.clone();
                                 let on_field_change = on_field_change.clone();
 
                                 let on_change_tag = {
                                     let on_field_change = on_field_change.clone();
-                                    let tag = tag.clone();
                                     Callback::from(move |e: InputEvent| {
-                                        let tag = tag.clone();
                                         use wasm_bindgen::JsCast;
                                         use web_sys::HtmlInputElement;
                                         if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
-                                            on_field_change.emit((tag, "tag", input.value()));
+                                            on_field_change.emit((id, "tag", input.value()));
                                         }
                                     })
                                 };
 
                                 let on_change_name = {
                                     let on_field_change = on_field_change.clone();
-                                    let tag = tag.clone();
                                     Callback::from(move |e: InputEvent| {
-                                        let tag = tag.clone();
                                         use wasm_bindgen::JsCast;
                                         use web_sys::HtmlInputElement;
                                         if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
-                                            on_field_change.emit((tag, "name", input.value()));
+                                            on_field_change.emit((id, "name", input.value()));
                                         }
                                     })
                                 };
@@ -420,7 +404,7 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                                 };
 
                                 html! {
-                                    <tr key={ c.tag.clone() } class={ row_class }>
+                                    <tr key={ idx.to_string() } class={ row_class }>
                                         { if is_edit { html! {
                                             <td class="works-table-td works-table-td--check">
                                                 <input
@@ -429,7 +413,7 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                                                     disabled={ is_misc }
                                                     onchange={
                                                         Callback::from(move |_: Event| {
-                                                            on_row_toggle.emit(tag.clone());
+                                                            on_row_toggle.emit(id);
                                                         })
                                                     }
                                                 />

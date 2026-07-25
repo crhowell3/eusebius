@@ -8,10 +8,10 @@ use super::DbState;
 #[tauri::command]
 pub async fn get_works(db: State<'_, DbState>) -> Result<Vec<Work>, String> {
     sqlx::query_as::<_, Work>(
-        "SELECT w.id, w.category_tag, w.description, c.name AS category_name
+        "SELECT w.id, w.category_id, c.tag AS category_tag, w.description, c.name AS category_name
         FROM works w
-        LEFT JOIN categories c ON w.category_tag = c.tag
-        ORDER BY w.category_tag
+        LEFT JOIN categories c ON w.category_id = c.id
+        ORDER BY w.category_id
         ",
     )
     .fetch_all(&db.0)
@@ -22,11 +22,11 @@ pub async fn get_works(db: State<'_, DbState>) -> Result<Vec<Work>, String> {
 #[tauri::command]
 pub async fn add_work(db: State<'_, DbState>, work: Work) -> Result<(), String> {
     sqlx::query(
-        "INSERT INTO works (description, category_tag)
+        "INSERT INTO works (description, category_id)
         VALUES (?, ?)",
     )
     .bind(&work.description)
-    .bind(&work.category_tag)
+    .bind(&work.category_id)
     .execute(&db.0)
     .await
     .map_err(|e| e.to_string())?;
@@ -36,9 +36,9 @@ pub async fn add_work(db: State<'_, DbState>, work: Work) -> Result<(), String> 
 
 #[tauri::command]
 pub async fn update_work(db: State<'_, DbState>, work: Work) -> Result<(), String> {
-    sqlx::query("UPDATE works SET description = ?, category_tag = ? WHERE id = ?")
+    sqlx::query("UPDATE works SET description = ?, category_id = ? WHERE id = ?")
         .bind(&work.description)
-        .bind(&work.category_tag)
+        .bind(&work.category_id)
         .bind(&work.id)
         .execute(&db.0)
         .await

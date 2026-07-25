@@ -92,7 +92,7 @@ pub fn works_form(props: &WorksFormProps) -> Html {
         })
     };
 
-    let is_valid = !new_work.description.trim().is_empty();
+    let is_valid = !new_work.description.trim().is_empty() && new_work.category_id != 0;
 
     html! {
         <aside class="works-form-card">
@@ -119,24 +119,24 @@ pub fn works_form(props: &WorksFormProps) -> Html {
 
                 <div class="form">
                     <select
-                        name="category_tag"
+                        name="category_id"
                         class="form-input form-select"
                         oninput={ handle_work_change.clone() }
                     >
                         <option value="" disabled=true
-                            selected={ new_work.category_tag.is_empty() }>
+                            selected={ new_work.category_id == 0 }>
                             { "Choose Category" }
                         </option>
                         { for (*categories).iter().map(|c| {
-                            let selected = new_work.category_tag == c.tag;
+                            let selected = new_work.category_id == c.id;
                             html! {
-                                <option value={ c.tag.clone() } selected={ selected }>
+                                <option value={ c.id.to_string() } selected={ selected }>
                                     { format!("[{}] {}", c.tag, c.name) }
                                 </option>
                             }
                         }) }
                     </select>
-                    <label for="category_tag" class="form-label">{ "Category" }</label>
+                    <label for="category_id" class="form-label">{ "Category" }</label>
                 </div>
 
                 <div class="form">

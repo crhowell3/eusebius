@@ -5,32 +5,10 @@ use models::Category;
 
 use super::DbState;
 
-pub async fn setup_categories_table(pool: &sqlx::SqlitePool) -> Result<(), String> {
-    sqlx::query(
-        "CREATE TABLE IF NOT EXISTS categories (
-            tag  TEXT PRIMARY KEY NOT NULL,
-            name TEXT NOT NULL
-        )",
-    )
-    .execute(pool)
-    .await
-    .map_err(|e| e.to_string())?;
-
-    sqlx::query(
-        "
-        INSERT OR IGNORE INTO categories (tag, name) VALUES ('MISC', 'Miscellaneous')",
-    )
-    .execute(pool)
-    .await
-    .map_err(|e| e.to_string())?;
-
-    Ok(())
-}
-
 #[tauri::command]
 pub async fn get_categories(db: State<'_, DbState>) -> Result<Vec<Category>, String> {
     sqlx::query_as::<_, Category>(
-        "SELECT tag, name FROM categories ORDER BY
+        "SELECT * FROM categories ORDER BY
             CASE WHEN tag = 'MISC' THEN 1 ELSE 0 END,  -- MISC always last
             length(tag), tag",
     )
@@ -54,7 +32,6 @@ pub async fn add_category(
     }
 
     let tag = tag.to_uppercase();
-
     let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM categories WHERE tag = ?)")
         .bind(&tag)
         .fetch_one(&db.0)
@@ -65,14 +42,17 @@ pub async fn add_category(
         return Err(format!("Tag \"{}\" is already in use", tag));
     }
 
-    sqlx::query("INSERT INTO categories (tag, name) VALUES (?, ?)")
-        .bind(&tag)
-        .bind(name.trim())
-        .execute(&db.0)
-        .await
-        .map_err(|e| e.to_string())?;
+    let id = sqlx::query_scalar::<_, i64>(
+        "INSERT INTO categories (tag, name) VALUES (?, ?) RETURNING id",
+    )
+    .bind(&tag)
+    .bind(name.trim())
+    .fetch_one(&db.0)
+    .await
+    .map_err(|e| e.to_string())?;
 
     Ok(Category {
+        id,
         tag,
         name: name.trim().to_string(),
     })
@@ -81,74 +61,67 @@ pub async fn add_category(
 #[tauri::command]
 pub async fn update_category(
     db: State<'_, DbState>,
-    old_tag: String,
-    new_tag: String,
+    id: i64,
+    tag: String,
     name: String,
 ) -> Result<(), String> {
-    if new_tag.is_empty() || !new_tag.chars().all(|c| c.is_ascii_alphabetic()) {
+    if tag.is_empty() || !tag.chars().all(|c| c.is_ascii_alphabetic()) {
         return Err("Tag must contain only letters".to_string());
     }
 
-    let new_tag = new_tag.to_uppercase();
+    let tag = tag.to_uppercase();
 
-    if new_tag != old_tag {
-        let exists: bool =
-            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM categories WHERE tag = ?)")
-                .bind(&new_tag)
-                .fetch_one(&db.0)
-                .await
-                .map_err(|e| e.to_string())?;
-
-        if exists {
-            return Err(format!("Tag \"{}\" is already in use", new_tag));
-        }
-
-        sqlx::query("INSERT INTO categories (tag, name) VALUES (?, ?)")
-            .bind(&new_tag)
-            .bind(&name)
-            .execute(&db.0)
+    let exists: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM categories WHERE tag = ? AND id != ?)")
+            .bind(&tag)
+            .bind(id)
+            .fetch_one(&db.0)
             .await
             .map_err(|e| e.to_string())?;
 
-        sqlx::query("DELETE FROM categories WHERE tag = ?")
-            .bind(&old_tag)
-            .execute(&db.0)
-            .await
-            .map_err(|e| e.to_string())?;
-    } else {
-        sqlx::query("UPDATE categories SET name = ? WHERE tag = ?")
-            .bind(&name)
-            .bind(&old_tag)
-            .execute(&db.0)
-            .await
-            .map_err(|e| e.to_string())?;
+    if exists {
+        return Err(format!("Tag \"{}\" is already in use.", tag));
     }
+
+    sqlx::query("UPDATE categories SET tag = ?, name = ? WHERE id = ?")
+        .bind(&tag)
+        .bind(&name)
+        .bind(id)
+        .execute(&db.0)
+        .await
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }
 
 #[tauri::command]
-pub async fn delete_categories(db: State<'_, DbState>, tags: Vec<String>) -> Result<(), String> {
-    if tags.is_empty() {
+pub async fn delete_categories(db: State<'_, DbState>, ids: Vec<i64>) -> Result<(), String> {
+    if ids.is_empty() {
         return Ok(());
     }
 
-    if tags.iter().any(|t| t == "MISC") {
+    let misc_id: i64 = sqlx::query_scalar("SELECT id FROM categories WHERE tag = 'MISC'")
+        .fetch_one(&db.0)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if ids.contains(&misc_id) {
         return Err("The Miscellaneous category cannot be deleted.".to_string());
     }
 
-    for tag in &tags {
-        sqlx::query("UPDATE works SET category_tag = 'MISC' WHERE category_tag = ?")
-            .bind(tag)
+    for id in &ids {
+        sqlx::query("UPDATE works SET category_id = ? WHERE category_id = ?")
+            .bind(misc_id)
+            .bind(id)
             .execute(&db.0)
             .await
             .map_err(|e| e.to_string())?;
     }
 
-    let mut builder = QueryBuilder::new("DELETE FROM categories WHERE tag IN (");
+    let mut builder = QueryBuilder::new("DELETE FROM categories WHERE id IN (");
     let mut separated = builder.separated(", ");
-    for tag in &tags {
-        separated.push_bind(tag);
+    for id in &ids {
+        separated.push_bind(id);
     }
     separated.push_unseparated(")");
 
