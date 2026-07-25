@@ -64,6 +64,7 @@ pub fn run() {
             db::baptism::add_baptism,
             db::baptism::get_baptisms,
             db::baptism::delete_baptisms,
+            db::baptism::update_baptism,
             // Deaths
             db::death::add_death,
             db::death::get_deaths,

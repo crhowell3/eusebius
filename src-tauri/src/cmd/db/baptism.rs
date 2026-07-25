@@ -33,6 +33,22 @@ pub async fn add_baptism(db: State<'_, DbState>, baptism: Baptism) -> Result<(),
 }
 
 #[tauri::command]
+pub async fn update_baptism(db: State<'_, DbState>, baptism: Baptism) -> Result<(), String> {
+    sqlx::query("UPDATE baptisms SET last_name = ?, first_name = ?, date_baptized = ?, witness = ?, location = ? WHERE family_id = ?")
+        .bind(&baptism.last_name)
+        .bind(&baptism.first_name)
+        .bind(&baptism.date_baptized)
+        .bind(&baptism.witness)
+        .bind(&baptism.location)
+        .bind(&baptism.family_id)
+        .execute(&db.0)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn delete_baptisms(
     db: State<'_, DbState>,
     family_ids: Vec<String>,

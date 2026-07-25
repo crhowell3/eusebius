@@ -83,7 +83,7 @@ fn today_string() -> String {
     chrono::Local::now().format("%Y-%m-%d").to_string()
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Baptism {
     pub family_id: String,

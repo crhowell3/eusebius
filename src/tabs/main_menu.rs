@@ -37,8 +37,8 @@ const MENU_BUTTONS: &[MenuButton] = &[
         variant: "primary",
     },
     MenuButton {
-        tab_label: "View Tables",
-        button_label: "View Tables",
+        tab_label: "Table List",
+        button_label: "Table List",
         id: "view-tables",
         variant: "primary",
     },
