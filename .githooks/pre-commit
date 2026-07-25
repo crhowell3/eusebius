@@ -5,8 +5,8 @@ echo "Running pre-commit checks..."
 
 MANIFEST="src-tauri/Cargo.toml"
 
-say() { printf '\033[1;36m> %s\033[0m\n' "$*"; }
-fail() { printf '\033[1;31mX %s\033[0m\n' "$*" >&2; exit 1; }
+say() { printf '\033[1;36m🞂 %s\033[0m\n' "$*"; }
+fail() { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 CHANGED_RUST_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.rs$|Cargo\.toml$\Cargo\.lock$' || true)
 
