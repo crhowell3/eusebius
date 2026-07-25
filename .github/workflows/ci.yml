@@ -30,10 +30,6 @@ jobs:
                       args: ""
                       rust_targets: ""
                       label: "windows-x64"
-                    - platform: ubuntu-22.04
-                      args: ""
-                      rust_targets: ""
-                      label: "linux-x64"
                     - platform: ubuntu-24.04
                       args: ""
                       rust_targets: ""
@@ -42,7 +38,7 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - name: install dependencies (ubuntu)
-              if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'ubuntu-24.04'
+              if: matrix.platform == 'ubuntu-24.04'
               run: |
                   sudo apt-get update
                   sudo apt-get install -y \
