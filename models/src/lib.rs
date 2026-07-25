@@ -42,7 +42,7 @@ pub struct TableInfo {
     pub path: String,
 }
 
-#[derive(Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Default, Clone, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Work {
     pub id: i64,
@@ -50,18 +50,6 @@ pub struct Work {
     pub category_id: i64,
     pub category_tag: String,
     pub category_name: String,
-}
-
-impl Default for Work {
-    fn default() -> Self {
-        Self {
-            id: 0,
-            description: String::new(),
-            category_id: 1,
-            category_tag: String::new(),
-            category_name: String::new(),
-        }
-    }
 }
 
 impl yew::prelude::Reducible for Work {
@@ -163,6 +151,7 @@ pub struct Child {
 }
 
 impl Child {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -218,6 +207,7 @@ pub struct Spouse {
 }
 
 impl Spouse {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -282,6 +272,7 @@ pub struct Family {
 }
 
 impl Family {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -338,6 +329,7 @@ pub struct Death {
 }
 
 impl Death {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -376,6 +368,7 @@ pub struct Category {
 }
 
 impl Category {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }

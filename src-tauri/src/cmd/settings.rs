@@ -10,6 +10,7 @@ fn settings_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("settings.toml"))
 }
 
+#[must_use]
 pub fn load_initial_settings(app: &tauri::AppHandle) -> AppSettings {
     let path = app
         .path()

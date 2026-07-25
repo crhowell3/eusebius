@@ -8,7 +8,9 @@ MANIFEST="src-tauri/Cargo.toml"
 say() { printf '\033[1;36m> %s\033[0m\n' "$*"; }
 fail() { printf '\033[1;31mX %s\033[0m\n' "$*" >&2; exit 1; }
 
-if ! git diff --cached --name-only --diff-filter=ACMR | grep -E '\.rs$|Cargo\.toml$\Cargo\.lock$' || true; then
+CHANGED_RUST_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.rs$|Cargo\.toml$\Cargo\.lock$' || true)
+
+if [ -z "$CHANGED_RUST_FILES" ] ; then
     echo "No Rust files staged, skipping Rust checks."
     exit 0
 fi
@@ -18,5 +20,5 @@ cargo fmt --manifest-path "$MANIFEST" --check \
     || fail "Unformatted code. Run: cargo fmt --manifest-path"
 
 say "pre-commit: clippy"
-cargo clippy --manifest-path "$MANIFEST" --no-default-features --all-targets -- -D warnings \
+cargo clippy --manifest-path "$MANIFEST" --all-features --all-targets -- -Dclippy::all -Dclippy::pedantic \
     || fail "Clippy found issues. Fix them."

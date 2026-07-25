@@ -26,7 +26,7 @@ pub async fn add_work(db: State<'_, DbState>, work: Work) -> Result<(), String> 
         VALUES (?, ?)",
     )
     .bind(&work.description)
-    .bind(&work.category_id)
+    .bind(work.category_id)
     .execute(&db.0)
     .await
     .map_err(|e| e.to_string())?;
@@ -38,8 +38,8 @@ pub async fn add_work(db: State<'_, DbState>, work: Work) -> Result<(), String> 
 pub async fn update_work(db: State<'_, DbState>, work: Work) -> Result<(), String> {
     sqlx::query("UPDATE works SET description = ?, category_id = ? WHERE id = ?")
         .bind(&work.description)
-        .bind(&work.category_id)
-        .bind(&work.id)
+        .bind(work.category_id)
+        .bind(work.id)
         .execute(&db.0)
         .await
         .map_err(|e| e.to_string())?;

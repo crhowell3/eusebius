@@ -21,8 +21,7 @@ pub async fn add_family(db: State<'_, DbState>, family: Family) -> Result<(), St
             .await
             .map_err(|e| e.to_string())?
             .and_then(|max| max.parse::<u32>().ok())
-            .map(|n| format!("{:04}", n + 1))
-            .unwrap_or_else(|| "0001".to_string());
+            .map_or_else(|| "0001".to_string(), |n| format!("{:04}", n + 1));
 
     sqlx::query(
         "INSERT INTO families (family_id, mail_route, last_name, first_name, is_member, is_active, date_of_birth, anniversary_month, anniversary_day, home_phone, cell_phone, work_phone, address, city, state, zip, email_address, on_bulletin_email_list)
@@ -32,8 +31,8 @@ pub async fn add_family(db: State<'_, DbState>, family: Family) -> Result<(), St
     .bind(&family.mail_route)
     .bind(&family.last_name)
     .bind(&family.first_name)
-    .bind(&family.is_member)
-    .bind(&family.is_active)
+    .bind(family.is_member)
+    .bind(family.is_active)
     .bind(&family.date_of_birth)
     .bind(&family.anniversary_month)
     .bind(&family.anniversary_day)
@@ -45,7 +44,7 @@ pub async fn add_family(db: State<'_, DbState>, family: Family) -> Result<(), St
     .bind(&family.state)
     .bind(&family.zip)
     .bind(&family.email_address)
-    .bind(&family.on_bulletin_email_list)
+    .bind(family.on_bulletin_email_list)
     .execute(&db.0)
     .await
     .map_err(|e| e.to_string())?;

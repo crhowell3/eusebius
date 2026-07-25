@@ -39,7 +39,7 @@ pub async fn add_category(
         .map_err(|e| e.to_string())?;
 
     if exists {
-        return Err(format!("Tag \"{}\" is already in use", tag));
+        return Err(format!("Tag \"{tag}\" is already in use"));
     }
 
     let id = sqlx::query_scalar::<_, i64>(
@@ -80,7 +80,7 @@ pub async fn update_category(
             .map_err(|e| e.to_string())?;
 
     if exists {
-        return Err(format!("Tag \"{}\" is already in use.", tag));
+        return Err(format!("Tag \"{tag}\" is already in use."));
     }
 
     sqlx::query("UPDATE categories SET tag = ?, name = ? WHERE id = ?")
