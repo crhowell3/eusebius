@@ -16,6 +16,19 @@ extern "C" {
     pub async fn writeText(text: &str);
 }
 
+pub fn format_phone(raw: &str) -> String {
+    let digits: String = raw.chars().filter(|c| c.is_ascii_digit()).collect();
+    let digits = &digits[..digits.len().min(10)];
+
+    match digits.len() {
+        0 => String::new(),
+        1..=3 => format!("({})", digits),
+        4..=6 => format!("({}) {}", &digits[..3], &digits[3..]),
+        7..=10 => format!("({}) {}-{}", &digits[..3], &digits[3..6], &digits[6..]),
+        _ => unreachable!(),
+    }
+}
+
 pub async fn fetch_records<T: DeserializeOwned>(cmd: &str) -> Result<Vec<T>, String> {
     let result = invoke(cmd, JsValue::UNDEFINED)
         .await

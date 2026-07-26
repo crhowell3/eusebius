@@ -53,6 +53,34 @@ pub async fn add_family(db: State<'_, DbState>, family: Family) -> Result<(), St
 }
 
 #[tauri::command]
+pub async fn update_family(db: State<'_, DbState>, family: Family) -> Result<(), String> {
+    sqlx::query("UPDATE families SET mail_route = ?, last_name = ?, first_name = ?, is_member = ?, is_active = ?, date_of_birth = ?, anniversary_month = ?, anniversary_day = ?, home_phone = ?, cell_phone = ?, work_phone = ?, address = ?, city = ?, state = ?, zip = ?, email_address = ?, on_bulletin_email_list = ? WHERE family_id = ?")
+        .bind(&family.mail_route)
+        .bind(&family.last_name)
+        .bind(&family.first_name)
+        .bind(family.is_member)
+        .bind(family.is_active)
+        .bind(&family.date_of_birth)
+        .bind(&family.anniversary_month)
+        .bind(&family.anniversary_day)
+        .bind(&family.home_phone)
+        .bind(&family.cell_phone)
+        .bind(&family.work_phone)
+        .bind(&family.address)
+        .bind(&family.city)
+        .bind(&family.state)
+        .bind(&family.zip)
+        .bind(&family.email_address)
+        .bind(family.on_bulletin_email_list)
+        .bind(&family.family_id)
+        .execute(&db.0)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn delete_families(
     db: State<'_, DbState>,
     family_ids: Vec<String>,
