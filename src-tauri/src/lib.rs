@@ -57,8 +57,7 @@ pub fn run() {
             db::spouse::save_spouse,
             db::spouse::get_spouse,
             // Children
-            db::child::add_child,
-            db::child::update_child,
+            db::child::add_or_update_child,
             db::child::get_children_by_family,
             db::child::delete_children,
             // Baptisms

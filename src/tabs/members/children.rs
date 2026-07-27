@@ -28,14 +28,14 @@ async fn fetch_children(family_id: &str) -> Result<Vec<Child>, String> {
     from_value::<Vec<Child>>(result).map_err(|e| e.to_string())
 }
 
-async fn update_child(child: Child) -> Result<(), String> {
+async fn add_or_update_child(child: Child) -> Result<(), String> {
     #[derive(Serialize)]
     #[serde(rename_all = "camelCase")]
     struct Args {
         child: Child,
     }
     let args = to_value(&Args { child }).map_err(|e| e.to_string())?;
-    let _ = invoke("update_child", args)
+    let _ = invoke("add_or_update_child", args)
         .await
         .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
 
@@ -271,7 +271,7 @@ pub fn children(props: &ChildrenTableProps) -> Html {
             spawn_local(async move {
                 let mut all_ok = true;
                 for child in changed {
-                    if let Err(e) = update_child(child).await {
+                    if let Err(e) = add_or_update_child(child).await {
                         error.set(Some(e));
                         all_ok = false;
                         break;
@@ -475,7 +475,7 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                     <div class="works-table-empty">
                         <span class="works-table-empty-text">{ "Loading..." }</span>
                     </div>
-                } else if !is_edit {
+                } else if !is_edit && children.is_empty() {
                     <div class="works-table-empty">
                         <AddRecord />
                         <span class="works-table-empty-text">
@@ -532,15 +532,17 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                                 };
                                 html! {
                                     <tr key={ c.id } class={ row_class }>
-                                        <td class="works-table-td works-table-td--check">
-                                            <input
-                                                type="checkbox"
-                                                checked={ is_checked }
-                                                onchange={ Callback::from(move |_: Event| {
-                                                    on_row_toggle.emit(child_id);
-                                                }) }
-                                            />
-                                        </td>
+                                        { if is_edit { html! {
+                                            <th class="works-table-th works-table-th--check">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={ all_checked }
+                                                    onchange={ Callback::from(move |_: Event| {
+                                                        on_row_toggle.emit(child_id);
+                                                    }) }
+                                                />
+                                            </th>
+                                        } } else { html! {} } }
                                         <td class="works-table-td">
                                             { text_input(idx, "first_name", &c.first_name, &on_field_change) }
                                         </td>

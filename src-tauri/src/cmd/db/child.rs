@@ -23,7 +23,7 @@ pub async fn get_children_by_family(
 }
 
 #[tauri::command]
-pub async fn update_child(db: State<'_, DbState>, child: Child) -> Result<(), String> {
+pub async fn add_or_update_child(db: State<'_, DbState>, child: Child) -> Result<(), String> {
     if child.id <= 0 {
         sqlx::query(
             "INSERT INTO children
@@ -66,22 +66,6 @@ pub async fn update_child(db: State<'_, DbState>, child: Child) -> Result<(), St
         .await
         .map_err(|e| e.to_string())?;
     }
-
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn add_child(db: State<'_, DbState>, child: Child) -> Result<(), String> {
-    sqlx::query(
-        "INSERT INTO children (family_id, first_name, last_name)
-        VALUES (?, ?, ?)",
-    )
-    .bind(&child.family_id)
-    .bind(&child.first_name)
-    .bind(&child.last_name)
-    .execute(&db.0)
-    .await
-    .map_err(|e| e.to_string())?;
 
     Ok(())
 }
