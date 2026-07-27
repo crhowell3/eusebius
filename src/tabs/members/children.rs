@@ -56,9 +56,28 @@ async fn delete_children(child_ids: Vec<i64>) -> Result<(), String> {
     Ok(())
 }
 
-enum FieldValue {
-    Text(String),
-    Bool(bool),
+fn text_cell(value: String) -> Html {
+    if value.is_empty() {
+        html! {
+            <span>{"—"}</span>
+        }
+    } else {
+        html! {
+            <span>{value}</span>
+        }
+    }
+}
+
+fn bool_cell(value: bool) -> Html {
+    if value {
+        html! {
+            <span class="family-badge family-badge--yes">{ "Yes" }</span>
+        }
+    } else {
+        html! {
+            <span class="family-badge family-badge--no">{ "No" }</span>
+        }
+    }
 }
 
 #[derive(Properties, PartialEq)]
@@ -291,25 +310,40 @@ pub fn children(props: &ChildrenTableProps) -> Html {
 
     let on_field_change = {
         let children = children.clone();
-        Callback::from(move |(idx, field, value): (usize, String, FieldValue)| {
+
+        Callback::from(move |(id, field, value): (i64, &'static str, String)| {
             let mut next = (*children).clone();
-            if let Some(child) = next.get_mut(idx) {
-                match (field.as_str(), value) {
-                    ("first_name", FieldValue::Text(v)) => child.first_name = v,
-                    ("last_name", FieldValue::Text(v)) => child.last_name = v,
-                    ("date_of_birth", FieldValue::Text(v)) => child.date_of_birth = v,
-                    ("cell_phone", FieldValue::Text(v)) => child.cell_phone = v,
-                    ("work_phone", FieldValue::Text(v)) => child.work_phone = v,
-                    ("email_address", FieldValue::Text(v)) => child.email_address = v,
-                    ("is_member", FieldValue::Bool(v)) => child.is_member = v,
-                    ("is_active", FieldValue::Bool(v)) => child.is_active = v,
-                    ("on_bulletin_email_list", FieldValue::Bool(v)) => {
-                        child.on_bulletin_email_list = v
-                    }
-                    _ => {}
+            if let Some(child) = next.iter_mut().find(|c| c.id == id) {
+                match field {
+                    "first_name" => child.first_name = value,
+                    "last_name" => child.last_name = value,
+                    "date_of_birth" => child.date_of_birth = value,
+                    "cell_phone" => child.cell_phone = value,
+                    "work_phone" => child.work_phone = value,
+                    "email_address" => child.email_address = value,
+                    _ => unreachable!(),
                 }
             }
             children.set(next);
+        })
+    };
+
+    let on_bool_change = {
+        let children = children.clone();
+
+        Callback::from(move |(id, field, value): (i64, &'static str, bool)| {
+            children.set({
+                let mut next = (*children).clone();
+                if let Some(f) = next.iter_mut().find(|f| f.id == id) {
+                    match field {
+                        "is_member" => f.is_member = value,
+                        "is_active" => f.is_active = value,
+                        "on_bulletin_email_list" => f.on_bulletin_email_list = value,
+                        _ => unreachable!(),
+                    }
+                }
+                next
+            })
         })
     };
 
@@ -328,45 +362,6 @@ pub fn children(props: &ChildrenTableProps) -> Html {
             next_temp_id.set(*next_temp_id - 1);
             children.set(next);
         })
-    };
-
-    let text_input = |idx: usize,
-                      field: &'static str,
-                      value: &str,
-                      on_change: &Callback<(usize, String, FieldValue)>| {
-        let on_change = on_change.clone();
-        let oninput = Callback::from(move |e: InputEvent| {
-            let input = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-            on_change.emit((idx, field.to_string(), FieldValue::Text(input.value())));
-        });
-        html! {
-            <input
-                type="text"
-                class="cell-input"
-                placeholder="—"
-                value={ value.to_string() }
-                oninput={ oninput }
-            />
-        }
-    };
-
-    let bool_input = |idx: usize,
-                      field: &'static str,
-                      value: bool,
-                      on_change: &Callback<(usize, String, FieldValue)>| {
-        let on_change = on_change.clone();
-        let onchange = Callback::from(move |e: Event| {
-            let input = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-            on_change.emit((idx, field.to_string(), FieldValue::Bool(input.checked())));
-        });
-        html! {
-            <input
-                type="checkbox"
-                class="cell-checkbox"
-                checked={ value }
-                onchange={ onchange }
-            />
-        }
     };
 
     let has_family = props.selected_family_id.is_some();
@@ -521,18 +516,78 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                             </tr>
                         </thead>
                         <tbody>
-                        { for (*children).iter().enumerate().map(|(idx, c)| {
+                        { for (*children).iter().map(|c| {
                                 let child_id = c.id;
                                 let is_checked = (*selected).contains(&c.id);
                                 let on_row_toggle = on_row_toggle.clone();
+
+                                let make_field_callback = {
+                                    let on_field_change = on_field_change.clone();
+                                    move |field_name: &'static str| {
+                                        let on_field_change = on_field_change.clone();
+                                        Callback::from(move |e: InputEvent| {
+                                            use wasm_bindgen::JsCast;
+                                            use web_sys::HtmlInputElement;
+                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+                                                on_field_change.emit((child_id, field_name, input.value()));
+                                            }
+                                        })
+                                    }
+                                };
+
+                                let make_bool_callback = {
+                                    let on_bool_change = on_bool_change.clone();
+                                    move |field_name: &'static str| {
+                                        let on_bool_change = on_bool_change.clone();
+                                        Callback::from(move |e: Event| {
+                                            use wasm_bindgen::JsCast;
+                                            use web_sys::HtmlInputElement;
+                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+                                                on_bool_change.emit((child_id, field_name, input.checked()));
+                                            }
+                                        })
+                                    }
+                                };
+
+                                let make_phone_callback = {
+                                    let on_field_change = on_field_change.clone();
+                                    move |field_name: &'static str| {
+                                        let on_field_change = on_field_change.clone();
+
+                                        Callback::from(move |e: InputEvent| {
+                                            use wasm_bindgen::JsCast;
+                                            use web_sys::HtmlInputElement;
+                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+                                                let formatted = format_phone(&input.value());
+                                                let _ = input.set_value(&formatted);
+                                                on_field_change.emit((child_id, field_name, formatted));
+                                            }
+                                        })
+                                    }
+                                };
+
+                                let on_change_last_name = make_field_callback("last_name");
+                                let on_change_first_name = make_field_callback("first_name");
+                                let on_change_date_of_birth = make_field_callback("date_of_birth");
+                                let on_change_email_address = make_field_callback("email_address");
+
+                                let on_change_cell_phone = make_phone_callback("cell_phone");
+                                let on_change_work_phone = make_phone_callback("work_phone");
+
+                                let on_change_is_member = make_bool_callback("is_member");
+                                let on_change_is_active = make_bool_callback("is_active");
+                                let on_change_on_bulletin_email_list = make_bool_callback("on_bulletin_email_list");
+
                                 let row_class = if is_checked {
                                     "works-table-row works-table-row--selected"
                                 } else {
                                     "works-table-row"
                                 };
+
                                 html! {
                                     <tr key={ c.id } class={ row_class }>
                                         { if is_edit { html! {
+                                            <>
                                             <th class="works-table-th works-table-th--check">
                                                 <input
                                                     type="checkbox"
@@ -542,34 +597,117 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                                                     }) }
                                                 />
                                             </th>
-                                        } } else { html! {} } }
-                                        <td class="works-table-td">
-                                            { text_input(idx, "first_name", &c.first_name, &on_field_change) }
-                                        </td>
-                                        <td class="works-table-td">
-                                            { text_input(idx, "last_name", &c.last_name, &on_field_change) }
-                                        </td>
-                                        <td class="works-table-td works-table-td--check">
-                                            { bool_input(idx, "is_member", c.is_member, &on_field_change) }
-                                        </td>
-                                        <td class="works-table-td works-table-td--check">
-                                            { bool_input(idx, "is_active", c.is_active, &on_field_change) }
-                                        </td>
-                                        <td class="works-table-td">
-                                            { text_input(idx, "date_of_birth", &c.date_of_birth, &on_field_change) }
-                                        </td>
-                                        <td class="works-table-td">
-                                            { text_input(idx, "cell_phone", &c.cell_phone, &on_field_change) }
-                                        </td>
-                                        <td class="works-table-td">
-                                            { text_input(idx, "work_phone", &c.work_phone, &on_field_change) }
-                                        </td>
-                                        <td class="works-table-td">
-                                            { text_input(idx, "email_address", &c.email_address, &on_field_change) }
-                                        </td>
-                                        <td class="works-table-td works-table-td--check">
-                                            { bool_input(idx, "on_bulletin_email_list", c.on_bulletin_email_list, &on_field_change) }
-                                        </td>
+                                            <td class="works-table-td">
+                                                <input
+                                                    type="text"
+                                                    class="cell-input"
+                                                    placeholder="—"
+                                                    value={ c.first_name.clone() }
+                                                    oninput={ on_change_first_name }
+                                                />
+                                            </td>
+                                            <td class="works-table-td">
+                                                <input
+                                                    type="text"
+                                                    class="cell-input"
+                                                    placeholder="—"
+                                                    value={ c.last_name.clone() }
+                                                    oninput={ on_change_last_name }
+                                                />
+                                            </td>
+                                            <td class="works-table-td works-table-td--check">
+                                                <input type="checkbox" id="is_member" name="is_member"
+                                                    class="form-checkbox-input"
+                                                    checked={ c.is_member }
+                                                    onchange={ on_change_is_member }
+                                                />
+                                            </td>
+                                            <td class="works-table-td works-table-td--check">
+                                                <input type="checkbox" id="is_member" name="is_member"
+                                                    class="form-checkbox-input"
+                                                    checked={ c.is_active }
+                                                    onchange={ on_change_is_active }
+                                                />
+                                            </td>
+                                            <td class="works-table-td">
+                                                <input
+                                                    type="text"
+                                                    class="cell-input"
+                                                    placeholder="—"
+                                                    value={ c.date_of_birth.clone() }
+                                                    oninput={ on_change_date_of_birth }
+                                                />
+                                            </td>
+                                            <td class="works-table-td">
+                                                <input
+                                                    type="text"
+                                                    class="cell-input"
+                                                    placeholder="—"
+                                                    max_length="14"
+                                                    inputmode="numeric"
+                                                    value={ c.cell_phone.clone() }
+                                                    oninput={ on_change_cell_phone }
+                                                />
+                                            </td>
+                                            <td class="works-table-td">
+                                                <input
+                                                    type="text"
+                                                    class="cell-input"
+                                                    placeholder="—"
+                                                    max_length="14"
+                                                    inputmode="numeric"
+                                                    value={ c.work_phone.clone() }
+                                                    oninput={ on_change_work_phone }
+                                                />
+                                            </td>
+                                            <td class="works-table-td">
+                                                <input
+                                                    type="text"
+                                                    class="cell-input"
+                                                    placeholder="—"
+                                                    value={ c.email_address.clone() }
+                                                    oninput={ on_change_email_address }
+                                                />
+                                            </td>
+                                            <td class="works-table-td works-table-td--check">
+                                                <input type="checkbox" id="on_bulletin_email_list" name="on_bulletin_email_list"
+                                                    class="form-checkbox-input"
+                                                    checked={ c.on_bulletin_email_list }
+                                                    onchange={ on_change_on_bulletin_email_list }
+                                                />
+                                            </td>
+                                            </>
+                                        } } else { html! {
+                                            <>
+                                            <td class="works-table-td works-table-td">
+                                                {text_cell(c.first_name.clone())}
+                                            </td>
+                                            <td class="works-table-td works-table-td">
+                                                {text_cell(c.last_name.clone())}
+                                            </td>
+                                            <td class="works-table-td works-table-td--check">
+                                                {bool_cell(c.is_member)}
+                                            </td>
+                                            <td class="works-table-td works-table-td--check">
+                                                {bool_cell(c.is_active)}
+                                            </td>
+                                            <td class="works-table-td works-table-td">
+                                                {text_cell(c.date_of_birth.clone())}
+                                            </td>
+                                            <td class="works-table-td works-table-td">
+                                                {text_cell(c.cell_phone.clone())}
+                                            </td>
+                                            <td class="works-table-td works-table-td">
+                                                {text_cell(c.work_phone.clone())}
+                                            </td>
+                                            <td class="works-table-td works-table-td">
+                                                {text_cell(c.email_address.clone())}
+                                            </td>
+                                            <td class="works-table-td works-table-td--check">
+                                                {bool_cell(c.on_bulletin_email_list)}
+                                            </td>
+                                            </>
+                                        } } }
                                     </tr>
                                 }
                             }) }
