@@ -2,9 +2,7 @@ use std::collections::HashSet;
 
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
-use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 use crate::components::icons::{AddRecord, EditBox, ErrorIcon, Eye, Save, TrashCan};
