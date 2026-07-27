@@ -52,18 +52,19 @@ pub fn run() {
             db::family::add_family,
             db::family::get_families,
             db::family::delete_families,
+            db::family::update_family,
             // Spouses
             db::spouse::save_spouse,
             db::spouse::get_spouse,
             // Children
-            db::child::add_child,
-            db::child::save_children,
+            db::child::add_or_update_child,
             db::child::get_children_by_family,
             db::child::delete_children,
             // Baptisms
             db::baptism::add_baptism,
             db::baptism::get_baptisms,
             db::baptism::delete_baptisms,
+            db::baptism::update_baptism,
             // Deaths
             db::death::add_death,
             db::death::get_deaths,

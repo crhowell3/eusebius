@@ -5,6 +5,7 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
+use crate::components::icons::{ErrorIcon, Plus};
 use crate::utils::invoke;
 use models::{Death, GenericAction};
 
@@ -77,26 +78,15 @@ pub fn deaths_form(props: &DeathsFormProps) -> Html {
         <aside class="works-form-card">
             <div class="works-form-header">
                 <span class="works-form-header-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
+                    <Plus />
                 </span>
-                <h3 class="works-form-title">{ "New Death Record" }</h3>
+                <h3 class="works-form-title">{ "Add Death" }</h3>
             </div>
 
             <div class="works-form-body">
                 if let Some(err) = (*form_error).as_deref() {
                     <div class="works-form-error">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="8" x2="12" y2="12"/>
-                            <line x1="12" y1="16" x2="12.01" y2="16"/>
-                        </svg>
+                        <ErrorIcon />
                         { err }
                     </div>
                 }

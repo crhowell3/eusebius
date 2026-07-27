@@ -9,3 +9,9 @@ pub use categories_table::CategoriesTable;
 pub use deaths_table::DeathsTable;
 pub use families_table::FamiliesTable;
 pub use works_table::WorksTable;
+
+#[derive(Clone, PartialEq)]
+pub enum TableMode {
+    View,
+    Edit,
+}

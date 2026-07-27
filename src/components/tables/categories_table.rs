@@ -1,11 +1,12 @@
 use std::collections::HashSet;
 
 use serde::Serialize;
-use serde_wasm_bindgen::to_value;
+use serde_wasm_bindgen::{from_value, to_value};
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use crate::components::icons::{EditBox, Eye, Save, TrashCan};
+use crate::components::tables::TableMode;
 use crate::utils::{fetch_records, invoke};
 use models::Category;
 
@@ -36,12 +37,6 @@ async fn update_category(id: i64, tag: String, name: String) -> Result<(), Strin
         .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
 
     Ok(())
-}
-
-#[derive(Clone, PartialEq)]
-enum TableMode {
-    View,
-    Edit,
 }
 
 #[derive(Properties, PartialEq)]
@@ -154,27 +149,60 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
     let on_delete = {
         let selected = selected.clone();
         let categories = categories.clone();
+        let saved_categories = saved_categories.clone();
+        let error = error.clone();
+        let mode = mode.clone();
+
         let on_category_delete = props.on_category_delete.clone();
         Callback::from(move |_: MouseEvent| {
             let to_delete: Vec<i64> = (*selected).iter().cloned().collect();
+            let count = to_delete.len();
             let selected = selected.clone();
             let categories = categories.clone();
+            let saved_categories = saved_categories.clone();
+            let error = error.clone();
+            let mode = mode.clone();
+
             let on_category_delete = on_category_delete.clone();
             spawn_local(async move {
+                #[derive(Serialize)]
+                struct DialogArgs {
+                    message: String,
+                    title: String,
+                }
+
+                let args = to_value(&DialogArgs {
+                    message: format!(
+                        "Delete {count} selected categor{}? This cannot be undone.",
+                        if count == 1 { "y" } else { "ies" }
+                    ),
+                    title: "Confirm Delete".to_string(),
+                })
+                .unwrap();
+
+                let Ok(confirmed) = invoke("show_confirm_dialog", args).await else {
+                    return;
+                };
+
+                if !from_value::<bool>(confirmed).unwrap_or(false) {
+                    return;
+                }
+
                 match delete_categories(to_delete).await {
                     Ok(_) => {
-                        let remaining = (*categories)
+                        let remaining: Vec<Category> = (*categories)
                             .iter()
                             .filter(|c| !(*selected).contains(&c.id))
                             .cloned()
                             .collect();
-                        categories.set(remaining);
+                        categories.set(remaining.clone());
+                        saved_categories.set(remaining);
                         selected.set(HashSet::new());
+                        error.set(None);
+                        mode.set(TableMode::View);
                         on_category_delete.emit(());
                     }
-                    Err(_e) => {
-                        // TODO(@crhowell3): Add in proper error handling
-                    }
+                    Err(e) => error.set(Some(e)),
                 }
             });
         })
@@ -271,6 +299,18 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                                 if categories.len() == 1 { "" } else { "s" }) }
                         </span>
                     }
+
+
+                    if is_edit {
+                        <span class="works-mode-badge works-mode-badge--edit">
+                            { "Edit Mode" }
+                        </span>
+                        if dirty {
+                            <span class="works-mode-badge">
+                                { "Unsaved Changes" }
+                            </span>
+                        }
+                    }
                 </div>
                 <div class="works-table-toolbar-right">
                     if is_edit {
@@ -328,7 +368,7 @@ pub fn categories_table(props: &CategoriesTableProps) -> Html {
                             move |_: MouseEvent| error.set(None)
                         }) }
                     >
-                        { "×" }
+                        { " ×" }
                     </button>
                 </div>
             }

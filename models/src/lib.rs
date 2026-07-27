@@ -83,7 +83,7 @@ fn today_string() -> String {
     chrono::Local::now().format("%Y-%m-%d").to_string()
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Baptism {
     pub family_id: String,
@@ -134,7 +134,7 @@ impl yew::prelude::Reducible for Baptism {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize, Default, PartialEq)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Child {
     pub id: i64,
@@ -248,7 +248,7 @@ impl yew::prelude::Reducible for Spouse {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize, Default, PartialEq)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Family {
     pub family_id: String,
@@ -319,7 +319,7 @@ impl yew::prelude::Reducible for Family {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize, Default, PartialEq)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Death {
     pub id: i64,
