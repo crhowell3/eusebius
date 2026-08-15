@@ -18,14 +18,6 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    - platform: macos-latest
-                      args: "--target aarch64-apple-darwin"
-                      rust_targets: "aarch64-apple-darwin"
-                      label: "macos-arm64"
-                    - platform: macos-latest
-                      args: "--target x86_64-apple-darwin"
-                      rust_targets: "x86_64-apple-darwin"
-                      label: "macos-intel"
                     - platform: windows-latest
                       args: ""
                       rust_targets: ""
