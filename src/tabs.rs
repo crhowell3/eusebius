@@ -1,4 +1,5 @@
 pub mod about;
+pub mod assignments;
 pub mod backups;
 pub mod baptisms;
 pub mod deaths;
@@ -9,6 +10,7 @@ pub mod view_tables;
 pub mod works;
 
 pub use about::About;
+pub use assignments::AssignmentsTab;
 pub use backups::BackupsTabBody;
 pub use baptisms::BaptismsTabBody;
 pub use deaths::DeathTabBody;

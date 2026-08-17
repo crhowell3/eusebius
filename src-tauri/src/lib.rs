@@ -60,6 +60,11 @@ pub fn run() {
             db::child::add_or_update_child,
             db::child::get_children_by_family,
             db::child::delete_children,
+            // Persons
+            db::persons::get_persons_for_family,
+            db::persons::get_works_for_person,
+            db::persons::get_persons_for_work,
+            db::persons::set_works_for_person,
             // Baptisms
             db::baptism::add_baptism,
             db::baptism::get_baptisms,

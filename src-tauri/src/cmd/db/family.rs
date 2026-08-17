@@ -49,6 +49,17 @@ pub async fn add_family(db: State<'_, DbState>, family: Family) -> Result<(), St
     .await
     .map_err(|e| e.to_string())?;
 
+    sqlx::query(
+        "INSERT INTO persons (family_id, role, first_name, last_name)
+         VALUES (?, 'head', ?, ?)",
+    )
+    .bind(&next_id)
+    .bind(&family.first_name)
+    .bind(&family.last_name)
+    .execute(&db.0)
+    .await
+    .map_err(|e| e.to_string())?;
+
     Ok(())
 }
 

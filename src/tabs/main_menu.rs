@@ -37,6 +37,12 @@ const MENU_BUTTONS: &[MenuButton] = &[
         variant: "primary",
     },
     MenuButton {
+        tab_label: "Assignments",
+        button_label: "Update Assignments",
+        id: "update-assignments",
+        variant: "primary",
+    },
+    MenuButton {
         tab_label: "Table List",
         button_label: "Table List",
         id: "view-tables",

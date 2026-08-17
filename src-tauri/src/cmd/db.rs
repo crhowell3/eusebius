@@ -10,6 +10,7 @@ pub mod category;
 pub mod child;
 pub mod death;
 pub mod family;
+pub mod persons;
 pub mod spouse;
 pub mod works;
 
@@ -18,6 +19,7 @@ pub use category::*;
 pub use child::*;
 pub use death::*;
 pub use family::*;
+pub use persons::*;
 pub use spouse::*;
 pub use works::*;
 

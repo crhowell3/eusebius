@@ -11,7 +11,7 @@ pub async fn get_children_by_family(
     family_id: String,
 ) -> Result<Vec<Child>, String> {
     sqlx::query_as::<_, Child>(
-        "SELECT id, family_id, first_name, last_name, is_member, is_active, date_of_birth, cell_phone, work_phone, email_address, on_bulletin_email_list
+        "SELECT id, person_id, family_id, first_name, last_name, is_member, is_active, date_of_birth, cell_phone, work_phone, email_address, on_bulletin_email_list
             FROM children
             WHERE family_id = ?
             ORDER BY id ASC"
@@ -23,15 +23,28 @@ pub async fn get_children_by_family(
 }
 
 #[tauri::command]
-pub async fn add_or_update_child(db: State<'_, DbState>, child: Child) -> Result<(), String> {
-    if child.id <= 0 {
-        sqlx::query(
-            "INSERT INTO children
-                    (family_id, first_name, last_name, is_member, is_active,
-                     date_of_birth, cell_phone, work_phone, email_address, on_bulletin_email_list)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+pub async fn add_or_update_child(db: State<'_, DbState>, child: Child) -> Result<Child, String> {
+    let (id, person_id) = if child.id <= 0 {
+        let person_id: i64 = sqlx::query_scalar(
+            "INSERT INTO persons (family_id, role, first_name, last_name)
+             VALUES (?, 'child', ?, ?) RETURNING id"
         )
         .bind(&child.family_id)
+        .bind(&child.first_name)
+        .bind(&child.last_name)
+        .fetch_one(&db.0)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        let id: i64 = sqlx::query_scalar(
+            "INSERT INTO children
+                    (family_id, person_id, first_name, last_name, is_member, is_active,
+                     date_of_birth, cell_phone, work_phone, email_address, on_bulletin_email_list)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 RETURNING id",
+        )
+        .bind(&child.family_id)
+        .bind(&person_id)
         .bind(&child.first_name)
         .bind(&child.last_name)
         .bind(child.is_member)
@@ -41,9 +54,11 @@ pub async fn add_or_update_child(db: State<'_, DbState>, child: Child) -> Result
         .bind(&child.work_phone)
         .bind(&child.email_address)
         .bind(child.on_bulletin_email_list)
-        .execute(&db.0)
+        .fetch_one(&db.0)
         .await
         .map_err(|e| e.to_string())?;
+
+        (id, Some(person_id))
     } else {
         sqlx::query(
             "UPDATE children SET
@@ -65,9 +80,25 @@ pub async fn add_or_update_child(db: State<'_, DbState>, child: Child) -> Result
         .execute(&db.0)
         .await
         .map_err(|e| e.to_string())?;
-    }
 
-    Ok(())
+        if let Some(pid) = child.person_id {
+            sqlx::query(
+                "UPDATE persons SET first_name = ?, last_name = ? WHERE id = ?"
+            )
+            .bind(&child.first_name)
+            .bind(&child.last_name)
+            .bind(pid)
+            .execute(&db.0)
+            .await
+            .map_err(|e| e.to_string())?;
+        }
+
+        (child.id, child.person_id)
+    };
+
+    Ok(Child {
+        id, person_id, ..child
+    })
 }
 
 #[tauri::command]
@@ -75,6 +106,19 @@ pub async fn delete_children(db: State<'_, DbState>, child_ids: Vec<i64>) -> Res
     if child_ids.is_empty() {
         return Ok(());
     }
+
+    let mut builder = QueryBuilder::new(
+        "SELECT person_id FROM children WHERE person_id IS NOT NULL AND id IN ("
+    );
+    let mut separated = builder.separated(", ");
+    for id in &child_ids { separated.push_bind(id); }
+    separated.push_unseparated(")");
+    let person_ids: Vec<i64> = builder
+        .build_query_scalar()
+        .fetch_all(&db.0)
+        .await
+        .map_err(|e| e.to_string())?;
+
     let mut builder = QueryBuilder::new("DELETE FROM children WHERE id IN (");
     let mut separated = builder.separated(", ");
     for id in &child_ids {
@@ -86,5 +130,14 @@ pub async fn delete_children(db: State<'_, DbState>, child_ids: Vec<i64>) -> Res
         .execute(&db.0)
         .await
         .map_err(|e| e.to_string())?;
+
+    if !person_ids.is_empty() {
+        let mut builder = QueryBuilder::new("DELETE FROM persons WHERE id IN (");
+        let mut separated = builder.separated(", ");
+        for id in &person_ids { separated.push_bind(id); }
+        separated.push_unseparated(")");
+        builder.build().execute(&db.0).await.map_err(|e| e.to_string())?;
+    }
+
     Ok(())
 }

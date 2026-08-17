@@ -54,5 +54,19 @@ pub async fn save_spouse(db: State<'_, DbState>, spouse: Spouse) -> Result<(), S
     .await
     .map_err(|e| e.to_string())?;
 
+    sqlx::query(
+        "INSERT INTO persons (family_id, role, first_name, last_name)
+         VALUES (?, 'spouse', ?, ?)
+         ON CONFLICT(family_id, role) WHERE role IN ('head', 'spouse') DO UPDATE SET
+             first_name = excluded.first_name,
+             last_name  = excluded.last_name",
+    )
+    .bind(&spouse.family_id)
+    .bind(&spouse.first_name)
+    .bind(&spouse.last_name)
+    .execute(&db.0)
+    .await
+    .map_err(|e| e.to_string())?;
+
     Ok(())
 }
