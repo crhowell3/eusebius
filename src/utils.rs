@@ -1,3 +1,5 @@
+pub mod callback_factories;
+
 use serde::de::DeserializeOwned;
 use serde_wasm_bindgen::from_value;
 use wasm_bindgen::JsValue;

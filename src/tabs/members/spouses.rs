@@ -270,6 +270,8 @@ pub fn spouses(props: &SpousesProps) -> Html {
                     <div class="form member-form-field">
                         <input type="text" name="cell_phone" class="form-input"
                             placeholder=" " autocomplete="off"
+                            max-length="14"
+                            input-mode="numeric"
                             value={ spouse.cell_phone.clone() }
                             oninput={ handle_spouse_change.clone() } />
                         <label for="cell_phone" class="form-label">{ "Cell Phone" }</label>
@@ -278,6 +280,8 @@ pub fn spouses(props: &SpousesProps) -> Html {
                     <div class="form member-form-field">
                         <input type="text" name="work_phone" class="form-input"
                             placeholder=" " autocomplete="off"
+                            max-length="14"
+                            input-mode="numeric"
                             value={ spouse.work_phone.clone() }
                             oninput={ handle_spouse_change.clone() } />
                         <label for="work_phone" class="form-label">{ "Work Phone" }</label>
