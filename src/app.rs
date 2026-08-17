@@ -4,7 +4,7 @@ use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use crate::tabs::{
-    About, BackupsTabBody, BaptismsTabBody, DeathTabBody, MainMenu, MemberTabBody, SettingsTabBody,
+    About, AssignmentsTab, BackupsTabBody, BaptismsTabBody, DeathTabBody, MainMenu, MemberTabBody, SettingsTabBody,
     ViewTables, WorkTabBody,
 };
 
@@ -34,6 +34,7 @@ fn tab_pane(props: &TabPaneProps) -> Html {
         "update-works" => html! { <WorkTabBody /> },
         "update-deaths" => html! { <DeathTabBody /> },
         "update-baptisms" => html! { <BaptismsTabBody /> },
+        "update-assignments" => html! { <AssignmentsTab /> },
         "perform-backup" => html! { <BackupsTabBody /> },
         "view-tables" => html! { <ViewTables /> },
         "settings" => html! { <SettingsTabBody /> },

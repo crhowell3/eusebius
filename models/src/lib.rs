@@ -138,6 +138,7 @@ impl yew::prelude::Reducible for Baptism {
 #[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
 pub struct Child {
     pub id: i64,
+    pub person_id: Option<i64>,
     pub family_id: String,
     pub first_name: String,
     pub last_name: String,
@@ -398,4 +399,28 @@ impl yew::prelude::Reducible for Category {
             CategoryAction::Reset => std::rc::Rc::new(Category::default()),
         }
     }
+}
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Default)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
+pub struct Person {
+    pub id: i64,
+    pub family_id: String,
+    pub role: String,
+    pub first_name: String,
+    pub last_name: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Default)]
+#[cfg_attr(not(target_arch = "wasm32"), derive(sqlx::FromRow))]
+pub struct MemberWorkView {
+    pub id: i64,
+    pub person_id: i64,
+    pub first_name: String,
+    pub last_name: String,
+    pub role: String,
+    pub family_id: String,
+    pub work_id: i64,
+    pub description: String,
+    pub category_name: String,
 }
