@@ -16,6 +16,24 @@ extern "C" {
     pub async fn writeText(text: &str);
 }
 
+pub fn format_date(raw: &str) -> String {
+    let digits: String = raw.chars().filter(|c| c.is_ascii_digit()).collect();
+    let digits = &digits[..digits.len().min(8)];
+
+    match digits.len() {
+        0 => String::new(),
+        1..=4 => format!("{year}", year = digits),
+        5..=6 => format!("{year}-{month}", year = &digits[..4], month = &digits[4..]),
+        7..=8 => format!(
+            "{year}-{month}-{day}",
+            year = &digits[..4],
+            month = &digits[4..6],
+            day = &digits[6..]
+        ),
+        _ => unreachable!(),
+    }
+}
+
 pub fn format_phone(raw: &str) -> String {
     let digits: String = raw.chars().filter(|c| c.is_ascii_digit()).collect();
     let digits = &digits[..digits.len().min(10)];

@@ -7,7 +7,7 @@ use yew::prelude::*;
 
 use crate::components::icons::{AddRecord, EditBox, ErrorIcon, Eye, Save, TrashCan};
 use crate::components::tables::TableMode;
-use crate::utils::{format_phone, invoke};
+use crate::utils::{format_date, format_phone, invoke};
 use models::Child;
 
 async fn fetch_children(family_id: &str) -> Result<Vec<Child>, String> {
@@ -564,9 +564,26 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                                     }
                                 };
 
+                                let make_birthday_callback = {
+                                    let on_field_change = on_field_change.clone();
+                                    move |field_name: &'static str| {
+                                        let on_field_change = on_field_change.clone();
+
+                                        Callback::from(move |e: InputEvent| {
+                                            use wasm_bindgen::JsCast;
+                                            use web_sys::HtmlInputElement;
+                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+                                                let formatted = format_date(&input.value());
+                                                let _ = input.set_value(&formatted);
+                                                on_field_change.emit((child_id, field_name, formatted));
+                                            }
+                                        })
+                                    }
+                                };
+
                                 let on_change_last_name = make_field_callback("last_name");
                                 let on_change_first_name = make_field_callback("first_name");
-                                let on_change_date_of_birth = make_field_callback("date_of_birth");
+                                let on_change_date_of_birth = make_birthday_callback("date_of_birth");
                                 let on_change_email_address = make_field_callback("email_address");
 
                                 let on_change_cell_phone = make_phone_callback("cell_phone");
@@ -632,6 +649,8 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                                                     type="text"
                                                     class="cell-input"
                                                     placeholder="—"
+                                                    max_length="10"
+                                                    inputmode="numeric"
                                                     value={ c.date_of_birth.clone() }
                                                     oninput={ on_change_date_of_birth }
                                                 />
