@@ -5,7 +5,7 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
-use crate::utils::invoke;
+use crate::utils::{self, format_date, format_phone, invoke};
 use models::{Family, GenericAction};
 
 #[derive(Serialize)]
@@ -42,16 +42,42 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
     let form_error = use_state(|| None::<String>);
     let new_family = use_reducer(Family::default);
 
+    let on_change_home_phone = utils::callback_factories::make_form_formatted_callback(
+        new_family.dispatcher(),
+        "home_phone",
+        format_phone,
+        |name, value| GenericAction::SetField { name, value },
+    );
+
+    let on_change_cell_phone = utils::callback_factories::make_form_formatted_callback(
+        new_family.dispatcher(),
+        "cell_phone",
+        format_phone,
+        |name, value| GenericAction::SetField { name, value },
+    );
+
+    let on_change_work_phone = utils::callback_factories::make_form_formatted_callback(
+        new_family.dispatcher(),
+        "work_phone",
+        format_phone,
+        |name, value| GenericAction::SetField { name, value },
+    );
+
+    let on_change_date_of_birth = utils::callback_factories::make_form_formatted_callback(
+        new_family.dispatcher(),
+        "date_of_birth",
+        format_date,
+        |name, value| GenericAction::SetField { name, value },
+    );
+
     let handle_family_change = {
         let new_family = new_family.dispatcher();
         Callback::from(move |e: InputEvent| {
-            let target = e.target().unwrap();
-
-            let (name, value) = if let Ok(input) = target.clone().dyn_into::<HtmlInputElement>() {
+            let (name, value) = if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                 (input.name(), input.value())
-            } else if let Ok(select) = target.clone().dyn_into::<HtmlSelectElement>() {
+            } else if let Some(select) = e.target_dyn_into::<HtmlSelectElement>() {
                 (select.name(), select.value())
-            } else if let Ok(textarea) = target.dyn_into::<HtmlTextAreaElement>() {
+            } else if let Some(textarea) = e.target_dyn_into::<HtmlTextAreaElement>() {
                 (textarea.name(), textarea.value())
             } else {
                 return;
@@ -144,10 +170,11 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
 
                     <div class="form member-form-field">
                         <input type="text" name="date_of_birth" class="form-input"
-                            placeholder="YYYY-MM-DD" pattern=r"\d{4}-\d{2}-\d{2}"
+                            placeholder="YYYY-MM-DD"
                             minlength="10" maxlength="10"
+                            inputmode="numeric"
                             value={ new_family.date_of_birth.clone() }
-                            oninput={ handle_family_change.clone() } />
+                            oninput={ on_change_date_of_birth } />
                         <label for="date_of_birth" class="form-label">{ "Date of Birth" }</label>
                     </div>
 
@@ -251,30 +278,33 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
                     <div class="form member-form-field">
                         <input type="text" name="home_phone" autocomplete="off"
                             class="form-input"
-                            placeholder="(999) 999-9999"
+                            placeholder=" "
                             maxlength="14"
+                            inputmode="numeric"
                             value={ new_family.home_phone.clone() }
-                            oninput={ handle_family_change.clone() } />
+                            oninput={ on_change_home_phone } />
                         <label for="home_phone" class="form-label">{ "Home Phone" }</label>
                     </div>
 
                     <div class="form member-form-field">
                         <input type="text" name="cell_phone" autocomplete="off"
                             class="form-input"
-                            placeholder="(999) 999-9999"
+                            placeholder=" "
                             maxlength="14"
+                            inputmode="numeric"
                             value={ new_family.cell_phone.clone() }
-                            oninput={ handle_family_change.clone() } />
+                            oninput={ on_change_cell_phone } />
                         <label for="cell_phone" class="form-label">{ "Cell Phone" }</label>
                     </div>
 
                     <div class="form member-form-field">
                         <input type="text" name="work_phone" autocomplete="off"
                             class="form-input"
-                            placeholder="(999) 999-9999"
+                            placeholder=" "
                             maxlength="14"
+                            inputmode="numeric"
                             value={ new_family.work_phone.clone() }
-                            oninput={ handle_family_change.clone() } />
+                            oninput={ on_change_work_phone } />
                         <label for="work_phone" class="form-label">{ "Work Phone" }</label>
                     </div>
 

@@ -9,7 +9,7 @@ use crate::components::icons::{AddRecord, EditBox, ErrorIcon, Eye, Save, TrashCa
 use crate::components::sorting::{SortDir, SortState, sort_icon};
 use crate::components::tables::TableMode;
 use crate::on_sort;
-use crate::utils::{fetch_records, format_phone, invoke};
+use crate::utils::{self, fetch_records, format_date, format_phone, invoke};
 use models::Family;
 
 async fn delete_families(family_ids: Vec<String>) -> Result<(), String> {
@@ -499,9 +499,9 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                             <col style="width: 110px" />
                             <col style="width: 100px" />
                             <col style="width: 70px" />
-                            <col style="width: 120px" />
-                            <col style="width: 120px" />
-                            <col style="width: 120px" />
+                            <col style="width: 170px" />
+                            <col style="width: 170px" />
+                            <col style="width: 170px" />
                             <col style="width: 180px" />
                             <col style="width: 110px" />
                             <col style="width: 60px" />
@@ -592,9 +592,9 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                         ) }
                                     </span>
                                 </th>
-                                <th class="works-table-th">{ "Home Ph." }</th>
-                                <th class="works-table-th">{ "Cell Ph." }</th>
-                                <th class="works-table-th">{ "Work Ph." }</th>
+                                <th class="works-table-th">{ "Home Phone" }</th>
+                                <th class="works-table-th">{ "Cell Phone" }</th>
+                                <th class="works-table-th">{ "Work Phone" }</th>
                                 <th class="works-table-th">{ "Address" }</th>
                                 <th class="works-table-th works-table-th--sortable"
                                     onclick={ on_sort_city }>
@@ -628,77 +628,24 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                 let is_active_family = props.selected_family_id.as_deref() == Some(m.family_id.as_str());
                                 let on_row_toggle = on_row_toggle.clone();
 
-                                let on_field_change = on_field_change.clone();
+                                let on_change_mail_route = utils::callback_factories::make_field_callback(on_field_change.clone(), family_id.clone(), "mail_route");
+                                let on_change_last_name = utils::callback_factories::make_field_callback(on_field_change.clone(), family_id.clone(), "last_name");
+                                let on_change_first_name = utils::callback_factories::make_field_callback(on_field_change.clone(), family_id.clone(), "first_name");
+                                let on_change_date_of_birth = utils::callback_factories::make_formatted_callback(on_field_change.clone(), family_id.clone(), "date_of_birth", format_date);
+                                let on_change_anniversary_month = utils::callback_factories::make_field_callback(on_field_change.clone(), family_id.clone(), "anniversary_month");
+                                let on_change_anniversary_day = utils::callback_factories::make_field_callback(on_field_change.clone(), family_id.clone(), "anniversary_day");
+                                let on_change_home_phone = utils::callback_factories::make_formatted_callback(on_field_change.clone(), family_id.clone(), "home_phone", format_phone);
+                                let on_change_cell_phone = utils::callback_factories::make_formatted_callback(on_field_change.clone(), family_id.clone(), "cell_phone", format_phone);
+                                let on_change_work_phone = utils::callback_factories::make_formatted_callback(on_field_change.clone(), family_id.clone(), "work_phone", format_phone);
+                                let on_change_address = utils::callback_factories::make_field_callback(on_field_change.clone(), family_id.clone(), "address");
+                                let on_change_city = utils::callback_factories::make_field_callback(on_field_change.clone(), family_id.clone(), "city");
+                                let on_change_state = utils::callback_factories::make_field_callback(on_field_change.clone(), family_id.clone(), "state");
+                                let on_change_zip = utils::callback_factories::make_field_callback(on_field_change.clone(), family_id.clone(), "zip");
+                                let on_change_email_address = utils::callback_factories::make_field_callback(on_field_change.clone(), family_id.clone(), "email_address");
 
-                                let make_field_callback = {
-                                    let on_field_change = on_field_change.clone();
-                                    let family_id = family_id.clone();
-                                    move |field_name: &'static str| {
-                                        let on_field_change = on_field_change.clone();
-                                        let family_id = family_id.clone();
-                                        Callback::from(move |e: InputEvent| {
-                                            use wasm_bindgen::JsCast;
-                                            use web_sys::HtmlInputElement;
-                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
-                                                on_field_change.emit((family_id.clone(), field_name, input.value()));
-                                            }
-                                        })
-                                    }
-                                };
-
-                                let make_bool_callback = {
-                                    let on_bool_change = on_bool_change.clone();
-                                    let family_id = family_id.clone();
-                                    move |field_name: &'static str| {
-                                        let on_bool_change = on_bool_change.clone();
-                                        let family_id = family_id.clone();
-                                        Callback::from(move |e: Event| {
-                                            use wasm_bindgen::JsCast;
-                                            use web_sys::HtmlInputElement;
-                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
-                                                on_bool_change.emit((family_id.clone(), field_name, input.checked()));
-                                            }
-                                        })
-                                    }
-                                };
-
-                                let make_phone_callback = {
-                                    let on_field_change = on_field_change.clone();
-                                    let family_id = family_id.clone();
-                                    move |field_name: &'static str| {
-                                        let on_field_change = on_field_change.clone();
-                                        let family_id = family_id.clone();
-
-                                        Callback::from(move |e: InputEvent| {
-                                            use wasm_bindgen::JsCast;
-                                            use web_sys::HtmlInputElement;
-                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
-                                                let formatted = format_phone(&input.value());
-                                                let _ = input.set_value(&formatted);
-                                                on_field_change.emit((family_id.clone(), field_name, formatted));
-                                            }
-                                        })
-                                    }
-                                };
-
-                                let on_change_mail_route = make_field_callback("mail_route");
-                                let on_change_last_name = make_field_callback("last_name");
-                                let on_change_first_name = make_field_callback("first_name");
-                                let on_change_date_of_birth = make_field_callback("date_of_birth");
-                                let on_change_anniversary_month = make_field_callback("anniversary_month");
-                                let on_change_anniversary_day = make_field_callback("anniversary_day");
-                                let on_change_home_phone = make_phone_callback("home_phone");
-                                let on_change_cell_phone = make_phone_callback("cell_phone");
-                                let on_change_work_phone = make_phone_callback("work_phone");
-                                let on_change_address = make_field_callback("address");
-                                let on_change_city = make_field_callback("city");
-                                let on_change_state = make_field_callback("state");
-                                let on_change_zip = make_field_callback("zip");
-                                let on_change_email_address = make_field_callback("email_address");
-
-                                let on_change_is_member = make_bool_callback("is_member");
-                                let on_change_is_active = make_bool_callback("is_active");
-                                let on_change_on_bulletin_email_list = make_bool_callback("on_bulletin_email_list");
+                                let on_change_is_member = utils::callback_factories::make_bool_callback(on_bool_change.clone(), family_id.clone(), "is_member");
+                                let on_change_is_active = utils::callback_factories::make_bool_callback(on_bool_change.clone(), family_id.clone(), "is_active");
+                                let on_change_on_bulletin_email_list = utils::callback_factories::make_bool_callback(on_bool_change.clone(), family_id.clone(), "on_bulletin_email_list");
 
                                 let on_dbl_click = {
                                     let on_select_family = props.on_select_family.clone();
@@ -741,6 +688,9 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                                             <input
                                                                 type="text"
                                                                 class="cell-input"
+                                                                placeholder="—"
+                                                                max_length="3"
+                                                                inputmode="numeric"
                                                                 value={ m.mail_route.clone() }
                                                                 oninput={ on_change_mail_route }
                                                             />
@@ -749,6 +699,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                                             <input
                                                                 type="text"
                                                                 class="cell-input"
+                                                                placeholder="—"
                                                                 value={ m.last_name.clone() }
                                                                 oninput={ on_change_last_name }
                                                             />
@@ -757,6 +708,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                                             <input
                                                                 type="text"
                                                                 class="cell-input"
+                                                                placeholder="—"
                                                                 value={ m.first_name.clone() }
                                                                 oninput={ on_change_first_name }
                                                             />
@@ -779,6 +731,9 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                                             <input
                                                                 type="text"
                                                                 class="cell-input"
+                                                                placeholder="—"
+                                                                max_length="10"
+                                                                inputmode="numeric"
                                                                 value={ m.date_of_birth.clone() }
                                                                 oninput={ on_change_date_of_birth }
                                                             />
@@ -803,6 +758,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                                             <input
                                                                 type="text"
                                                                 class="cell-input"
+                                                                placeholder="—"
                                                                 max_length="14"
                                                                 inputmode="numeric"
                                                                 value={ m.home_phone.clone() }
@@ -813,6 +769,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                                             <input
                                                                 type="text"
                                                                 class="cell-input"
+                                                                placeholder="—"
                                                                 max_length="14"
                                                                 inputmode="numeric"
                                                                 value={ m.cell_phone.clone() }
@@ -823,6 +780,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                                             <input
                                                                 type="text"
                                                                 class="cell-input"
+                                                                placeholder="—"
                                                                 max_length="14"
                                                                 inputmode="numeric"
                                                                 value={ m.work_phone.clone() }
@@ -833,6 +791,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                                             <input
                                                                 type="text"
                                                                 class="cell-input"
+                                                                placeholder="—"
                                                                 value={ m.address.clone() }
                                                                 oninput={ on_change_address }
                                                             />
@@ -841,6 +800,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                                             <input
                                                                 type="text"
                                                                 class="cell-input"
+                                                                placeholder="—"
                                                                 value={ m.city.clone() }
                                                                 oninput={ on_change_city }
                                                             />
@@ -857,6 +817,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                                             <input
                                                                 type="text"
                                                                 class="cell-input"
+                                                                placeholder="—"
                                                                 value={ m.zip.clone() }
                                                                 oninput={ on_change_zip }
                                                             />
@@ -865,6 +826,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                                             <input
                                                                 type="text"
                                                                 class="cell-input"
+                                                                placeholder="—"
                                                                 value={ m.email_address.clone() }
                                                                 oninput={ on_change_email_address }
                                                             />
