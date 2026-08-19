@@ -6,7 +6,7 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
 use crate::components::icons::Plus;
-use crate::utils::invoke;
+use crate::utils::{self, format_date, invoke, is_valid_date};
 use models::{Baptism, GenericAction};
 
 #[derive(Serialize)]
@@ -27,26 +27,6 @@ fn is_valid_family_id(s: &str) -> bool {
     s.len() == 4 && s.chars().all(|c| c.is_ascii_digit())
 }
 
-fn is_valid_date(s: &str) -> bool {
-    if s.len() != 10 {
-        return false;
-    }
-    let parts: Vec<&str> = s.split('-').collect();
-    if parts.len() != 3 {
-        return false;
-    }
-    let Ok(y) = parts[0].parse::<u32>() else {
-        return false;
-    };
-    let Ok(m) = parts[1].parse::<u32>() else {
-        return false;
-    };
-    let Ok(d) = parts[2].parse::<u32>() else {
-        return false;
-    };
-    y >= 1000 && (1..=12).contains(&m) && (1..=31).contains(&d)
-}
-
 fn is_valid_baptism(b: &Baptism) -> bool {
     is_valid_family_id(&b.family_id)
         && !b.first_name.trim().is_empty()
@@ -65,6 +45,13 @@ pub struct BaptismsFormProps {
 pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
     let form_error = use_state(|| None::<String>);
     let new_baptism = use_reducer(Baptism::default);
+
+    let on_change_date_baptized = utils::callback_factories::make_form_formatted_callback(
+        new_baptism.dispatcher(),
+        "date_baptized",
+        format_date,
+        |name, value| GenericAction::SetField { name, value },
+    );
 
     let handle_baptism_change = {
         let new_baptism = new_baptism.dispatcher();
@@ -189,9 +176,10 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
                         name="date_baptized"
                         class="form-input"
                         placeholder="YYYY-MM-DD"
-                        pattern=r"\d{4}-\d{2}-\d{2}"
+                        maxlength="10"
+                        inputmode="numeric"
                         value={ new_baptism.date_baptized.clone() }
-                        oninput={ handle_baptism_change.clone() }
+                        oninput={ on_change_date_baptized }
                     />
                     <label htmlFor="date_baptized" class="form-label">
                         {"Date"}
