@@ -7,7 +7,7 @@ use yew::prelude::*;
 
 use crate::components::icons::{AddRecord, EditBox, ErrorIcon, Eye, Save, TrashCan};
 use crate::components::tables::TableMode;
-use crate::utils::{format_phone, invoke};
+use crate::utils::{self, format_date, format_phone, invoke};
 use models::Child;
 
 async fn fetch_children(family_id: &str) -> Result<Vec<Child>, String> {
@@ -519,62 +519,17 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                                 let is_checked = (*selected).contains(&c.id);
                                 let on_row_toggle = on_row_toggle.clone();
 
-                                let make_field_callback = {
-                                    let on_field_change = on_field_change.clone();
-                                    move |field_name: &'static str| {
-                                        let on_field_change = on_field_change.clone();
-                                        Callback::from(move |e: InputEvent| {
-                                            use wasm_bindgen::JsCast;
-                                            use web_sys::HtmlInputElement;
-                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
-                                                on_field_change.emit((child_id, field_name, input.value()));
-                                            }
-                                        })
-                                    }
-                                };
+                                let on_change_last_name = utils::callback_factories::make_field_callback(on_field_change.clone(), child_id, "last_name");
+                                let on_change_first_name = utils::callback_factories::make_field_callback(on_field_change.clone(), child_id, "first_name");
+                                let on_change_date_of_birth = utils::callback_factories::make_formatted_callback(on_field_change.clone(), child_id, "date_of_birth", format_date);
+                                let on_change_email_address = utils::callback_factories::make_field_callback(on_field_change.clone(), child_id, "email_address");
 
-                                let make_bool_callback = {
-                                    let on_bool_change = on_bool_change.clone();
-                                    move |field_name: &'static str| {
-                                        let on_bool_change = on_bool_change.clone();
-                                        Callback::from(move |e: Event| {
-                                            use wasm_bindgen::JsCast;
-                                            use web_sys::HtmlInputElement;
-                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
-                                                on_bool_change.emit((child_id, field_name, input.checked()));
-                                            }
-                                        })
-                                    }
-                                };
+                                let on_change_cell_phone = utils::callback_factories::make_formatted_callback(on_field_change.clone(), child_id, "cell_phone", format_phone);
+                                let on_change_work_phone = utils::callback_factories::make_formatted_callback(on_field_change.clone(), child_id, "work_phone", format_phone);
 
-                                let make_phone_callback = {
-                                    let on_field_change = on_field_change.clone();
-                                    move |field_name: &'static str| {
-                                        let on_field_change = on_field_change.clone();
-
-                                        Callback::from(move |e: InputEvent| {
-                                            use wasm_bindgen::JsCast;
-                                            use web_sys::HtmlInputElement;
-                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
-                                                let formatted = format_phone(&input.value());
-                                                let _ = input.set_value(&formatted);
-                                                on_field_change.emit((child_id, field_name, formatted));
-                                            }
-                                        })
-                                    }
-                                };
-
-                                let on_change_last_name = make_field_callback("last_name");
-                                let on_change_first_name = make_field_callback("first_name");
-                                let on_change_date_of_birth = make_field_callback("date_of_birth");
-                                let on_change_email_address = make_field_callback("email_address");
-
-                                let on_change_cell_phone = make_phone_callback("cell_phone");
-                                let on_change_work_phone = make_phone_callback("work_phone");
-
-                                let on_change_is_member = make_bool_callback("is_member");
-                                let on_change_is_active = make_bool_callback("is_active");
-                                let on_change_on_bulletin_email_list = make_bool_callback("on_bulletin_email_list");
+                                let on_change_is_member = utils::callback_factories::make_bool_callback(on_bool_change.clone(), child_id, "is_member");
+                                let on_change_is_active = utils::callback_factories::make_bool_callback(on_bool_change.clone(), child_id, "is_active");
+                                let on_change_on_bulletin_email_list = utils::callback_factories::make_bool_callback(on_bool_change.clone(), child_id, "on_bulletin_email_list");
 
                                 let row_class = if is_checked {
                                     "works-table-row works-table-row--selected"
@@ -632,6 +587,8 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                                                     type="text"
                                                     class="cell-input"
                                                     placeholder="—"
+                                                    max_length="10"
+                                                    inputmode="numeric"
                                                     value={ c.date_of_birth.clone() }
                                                     oninput={ on_change_date_of_birth }
                                                 />

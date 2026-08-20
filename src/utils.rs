@@ -1,3 +1,6 @@
+pub mod callback_factories;
+
+use chrono::NaiveDate;
 use serde::de::DeserializeOwned;
 use serde_wasm_bindgen::from_value;
 use wasm_bindgen::JsValue;
@@ -14,6 +17,49 @@ extern "C" {
 extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "clipboardManager"])]
     pub async fn writeText(text: &str);
+}
+
+pub fn is_valid_date(s: &str) -> bool {
+    if s.len() != 10 {
+        return false;
+    }
+
+    let parts: Vec<&str> = s.split('-').collect();
+    if parts.len() != 3 {
+        return false;
+    }
+
+    if parts[0].len() != 4 || parts[1].len() != 2 || parts[2].len() != 2 {
+        return false;
+    }
+
+    let (Ok(y), Ok(m), Ok(d)) = (
+        parts[0].parse::<i32>(),
+        parts[1].parse::<u32>(),
+        parts[2].parse::<u32>(),
+    ) else {
+        return false;
+    };
+
+    NaiveDate::from_ymd_opt(y, m, d).is_some()
+}
+
+pub fn format_date(raw: &str) -> String {
+    let digits: String = raw.chars().filter(|c| c.is_ascii_digit()).collect();
+    let digits = &digits[..digits.len().min(8)];
+
+    match digits.len() {
+        0 => String::new(),
+        1..=4 => format!("{year}", year = digits),
+        5..=6 => format!("{year}-{month}", year = &digits[..4], month = &digits[4..]),
+        7..=8 => format!(
+            "{year}-{month}-{day}",
+            year = &digits[..4],
+            month = &digits[4..6],
+            day = &digits[6..]
+        ),
+        _ => unreachable!(),
+    }
 }
 
 pub fn format_phone(raw: &str) -> String {

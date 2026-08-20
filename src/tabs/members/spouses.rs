@@ -5,7 +5,7 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use crate::utils::invoke;
+use crate::utils::{self, format_date, format_phone, invoke};
 use models::{Spouse, SpouseAction};
 
 async fn fetch_spouse(family_id: &str) -> Result<Option<Spouse>, String> {
@@ -93,6 +93,27 @@ pub fn spouses(props: &SpousesProps) -> Html {
             || ()
         });
     }
+
+    let on_change_cell_phone = utils::callback_factories::make_form_formatted_callback(
+        spouse.dispatcher(),
+        "cell_phone",
+        format_phone,
+        |name, value| SpouseAction::SetField { name, value },
+    );
+
+    let on_change_work_phone = utils::callback_factories::make_form_formatted_callback(
+        spouse.dispatcher(),
+        "work_phone",
+        format_phone,
+        |name, value| SpouseAction::SetField { name, value },
+    );
+
+    let on_change_date_of_birth = utils::callback_factories::make_form_formatted_callback(
+        spouse.dispatcher(),
+        "date_of_birth",
+        format_date,
+        |name, value| SpouseAction::SetField { name, value },
+    );
 
     let handle_spouse_change = {
         let spouse = spouse.dispatcher();
@@ -234,9 +255,11 @@ pub fn spouses(props: &SpousesProps) -> Html {
 
                     <div class="form member-form-field member-form-full">
                         <input type="text" name="date_of_birth" class="form-input"
-                            placeholder="YYYY-MM-DD" pattern=r"\d{4}-\d{2}-\d{2}"
+                            placeholder="YYYY-MM-DD"
+                            maxlength="10"
+                            inputmode="numeric"
                             value={ spouse.date_of_birth.clone() }
-                            oninput={ handle_spouse_change.clone() } />
+                            oninput={ on_change_date_of_birth } />
                         <label for="date_of_birth" class="form-label">{ "Date of Birth" }</label>
                     </div>
 
@@ -270,16 +293,20 @@ pub fn spouses(props: &SpousesProps) -> Html {
                     <div class="form member-form-field">
                         <input type="text" name="cell_phone" class="form-input"
                             placeholder=" " autocomplete="off"
+                            max-length="14"
+                            input-mode="numeric"
                             value={ spouse.cell_phone.clone() }
-                            oninput={ handle_spouse_change.clone() } />
+                            oninput={ on_change_cell_phone } />
                         <label for="cell_phone" class="form-label">{ "Cell Phone" }</label>
                     </div>
 
                     <div class="form member-form-field">
                         <input type="text" name="work_phone" class="form-input"
                             placeholder=" " autocomplete="off"
+                            max-length="14"
+                            input-mode="numeric"
                             value={ spouse.work_phone.clone() }
-                            oninput={ handle_spouse_change.clone() } />
+                            oninput={ on_change_work_phone } />
                         <label for="work_phone" class="form-label">{ "Work Phone" }</label>
                     </div>
 

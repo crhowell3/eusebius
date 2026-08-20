@@ -6,7 +6,7 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
 use crate::components::icons::{ErrorIcon, Plus};
-use crate::utils::invoke;
+use crate::utils::{self, format_date, invoke, is_valid_date};
 use models::{Death, GenericAction};
 
 #[derive(Serialize)]
@@ -32,6 +32,13 @@ pub struct DeathsFormProps {
 pub fn deaths_form(props: &DeathsFormProps) -> Html {
     let form_error = use_state(|| None::<String>);
     let new_death = use_reducer(Death::default);
+
+    let on_change_date_baptized = utils::callback_factories::make_form_formatted_callback(
+        new_death.dispatcher(),
+        "date_of_death",
+        format_date,
+        |name, value| GenericAction::SetField { name, value },
+    );
 
     let handle_death_change = {
         let new_death = new_death.dispatcher();
@@ -72,7 +79,8 @@ pub fn deaths_form(props: &DeathsFormProps) -> Html {
 
     let is_valid = !new_death.first_name.is_empty()
         && !new_death.last_name.is_empty()
-        && !new_death.date_of_death.is_empty();
+        && !new_death.date_of_death.is_empty()
+        && is_valid_date(&new_death.date_of_death);
 
     html! {
         <aside class="works-form-card">
@@ -117,9 +125,11 @@ pub fn deaths_form(props: &DeathsFormProps) -> Html {
                         name="date_of_death"
                         autocomplete="off"
                         class="form-input"
-                        placeholder=""
+                        placeholder="YYYY-MM-DD"
+                        maxlength="10"
+                        inputmode="numeric"
                         value={ new_death.date_of_death.clone() }
-                        oninput={ handle_death_change.clone() }
+                        oninput={ on_change_date_baptized }
                     />
                     <label for="date_of_death" class="form-label">
                         { "Date of Death" }
