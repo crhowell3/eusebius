@@ -1,6 +1,6 @@
 pub mod cmd;
 
-use crate::cmd::{DbState, backup, db, general, settings};
+use crate::cmd::{DbState, backup, db, general, print, settings};
 
 use tauri::Manager;
 
@@ -92,6 +92,8 @@ pub fn run() {
             backup::list_backups,
             backup::create_backup,
             backup::delete_backup,
+            // Print
+            print::print_birthdays,
             // App / misc
             general::get_app_data_dir,
             general::exit_app,
