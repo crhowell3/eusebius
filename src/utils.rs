@@ -29,7 +29,10 @@ pub fn is_valid_date(s: &str) -> bool {
         return false;
     }
 
-    if parts[0].len() != 4 || parts[1].len() != 2 || parts[2].len() != 2 {
+    if parts.get(0).map_or(false, |p| p.len() != 4)
+        || parts.get(1).map_or(false, |p| p.len() != 2)
+        || parts.get(2).map_or(false, |p| p.len() != 2)
+    {
         return false;
     }
 
@@ -45,12 +48,12 @@ pub fn is_valid_date(s: &str) -> bool {
 }
 
 pub fn format_date(raw: &str) -> String {
-    let digits: String = raw.chars().filter(|c| c.is_ascii_digit()).collect();
+    let digits: String = raw.chars().filter(char::is_ascii_digit).collect();
     let digits = &digits[..digits.len().min(8)];
 
     match digits.len() {
         0 => String::new(),
-        1..=4 => format!("{year}", year = digits),
+        1..=4 => digits.to_string(),
         5..=6 => format!("{year}-{month}", year = &digits[..4], month = &digits[4..]),
         7..=8 => format!(
             "{year}-{month}-{day}",
@@ -62,17 +65,26 @@ pub fn format_date(raw: &str) -> String {
     }
 }
 
+#[must_use]
 pub fn format_phone(raw: &str) -> String {
-    let digits: String = raw.chars().filter(|c| c.is_ascii_digit()).collect();
-    let digits = &digits[..digits.len().min(10)];
+    let mut out = String::with_capacity(14);
 
-    match digits.len() {
-        0 => String::new(),
-        1..=3 => format!("({})", digits),
-        4..=6 => format!("({}) {}", &digits[..3], &digits[3..]),
-        7..=10 => format!("({}) {}-{}", &digits[..3], &digits[3..6], &digits[6..]),
-        _ => unreachable!(),
+    for (i, c) in raw
+        .chars()
+        .filter(char::is_ascii_digit)
+        .take(10)
+        .enumerate()
+    {
+        match i {
+            0 => out.push('('),
+            3 => out.push_str(") "),
+            6 => out.push('-'),
+            _ => {}
+        }
+        out.push(c);
     }
+
+    out
 }
 
 pub async fn fetch_records<T: DeserializeOwned>(cmd: &str) -> Result<Vec<T>, String> {
