@@ -22,7 +22,7 @@ async fn fetch_children(family_id: &str) -> Result<Vec<Child>, String> {
     .map_err(|e| e.to_string())?;
     let result = invoke("get_children_by_family", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
     from_value::<Vec<Child>>(result).map_err(|e| e.to_string())
 }
 
@@ -35,7 +35,7 @@ async fn add_or_update_child(child: Child) -> Result<(), String> {
     let args = to_value(&Args { child }).map_err(|e| e.to_string())?;
     let _ = invoke("add_or_update_child", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -49,7 +49,7 @@ async fn delete_children(child_ids: Vec<i64>) -> Result<(), String> {
     let args = to_value(&Args { child_ids }).map_err(|e| e.to_string())?;
     let _ = invoke("delete_children", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -78,7 +78,7 @@ fn bool_cell(value: bool) -> Html {
     }
 }
 
-#[derive(Properties, PartialEq)]
+#[derive(Properties, PartialEq, Eq)]
 pub struct ChildrenTableProps {
     pub selected_family_id: Option<String>,
 }
@@ -102,30 +102,27 @@ pub fn children(props: &ChildrenTableProps) -> Html {
         let initial_load = initial_load.clone();
         let family_id = props.selected_family_id.clone();
 
-        use_effect_with(family_id.clone(), move |family_id| {
+        use_effect_with(family_id, move |family_id| {
             let family_id = family_id.clone();
-            match family_id {
-                Some(id) => {
-                    initial_load.set(true);
-                    spawn_local(async move {
-                        match fetch_children(&id).await {
-                            Ok(data) => {
-                                saved_children.set(data.clone());
-                                children.set(data);
-                                error.set(None);
-                                selected.set(HashSet::new());
-                            }
-                            Err(e) => error.set(Some(e)),
+            if let Some(id) = family_id {
+                initial_load.set(true);
+                spawn_local(async move {
+                    match fetch_children(&id).await {
+                        Ok(data) => {
+                            saved_children.set(data.clone());
+                            children.set(data);
+                            error.set(None);
+                            selected.set(HashSet::new());
                         }
-                        initial_load.set(false);
-                    });
-                }
-                None => {
-                    saved_children.set(Vec::new());
-                    children.set(Vec::new());
-                    error.set(None);
+                        Err(e) => error.set(Some(e)),
+                    }
                     initial_load.set(false);
-                }
+                });
+            } else {
+                saved_children.set(Vec::new());
+                children.set(Vec::new());
+                error.set(None);
+                initial_load.set(false);
             }
 
             || ()
@@ -191,7 +188,7 @@ pub fn children(props: &ChildrenTableProps) -> Html {
         let mode = mode.clone();
 
         Callback::from(move |_: MouseEvent| {
-            let to_delete: Vec<i64> = (*selected).iter().cloned().collect();
+            let to_delete: Vec<i64> = (*selected).iter().copied().collect();
             let count = to_delete.len();
             let selected = selected.clone();
             let children = children.clone();
@@ -224,7 +221,7 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                 }
 
                 match delete_children(to_delete).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         let remaining: Vec<Child> = (*children)
                             .iter()
                             .filter(|c| !(*selected).contains(&c.id))
@@ -244,10 +241,8 @@ pub fn children(props: &ChildrenTableProps) -> Html {
 
     let on_save_edits = {
         let children = children.clone();
-        let saved_children = saved_children.clone();
         let error = error.clone();
         let saving = saving.clone();
-        let mode = mode.clone();
 
         Callback::from(move |_: MouseEvent| {
             let snapshot = (*saved_children).clone();
@@ -277,7 +272,7 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                 return;
             }
 
-            let children = children.clone();
+            let children = children;
             let saved_children = saved_children.clone();
             let error = error.clone();
             let saving = saving.clone();
@@ -319,7 +314,7 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                     "cell_phone" => child.cell_phone = value,
                     "work_phone" => child.work_phone = value,
                     "email_address" => child.email_address = value,
-                    _ => unreachable!(),
+                    &_ => {}
                 }
             }
             children.set(next);
@@ -337,17 +332,16 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                         "is_member" => f.is_member = value,
                         "is_active" => f.is_active = value,
                         "on_bulletin_email_list" => f.on_bulletin_email_list = value,
-                        _ => unreachable!(),
+                        &_ => {}
                     }
                 }
                 next
-            })
+            });
         })
     };
 
     let on_add_row = {
         let children = children.clone();
-        let next_temp_id = next_temp_id.clone();
         let family_id = props.selected_family_id.clone();
         Callback::from(move |_: MouseEvent| {
             let Some(fid) = family_id.clone() else { return };
@@ -357,7 +351,7 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                 family_id: fid,
                 ..Default::default()
             });
-            next_temp_id.set(*next_temp_id - 1);
+            next_temp_id.set(next_temp_id.wrapping_sub(1));
             children.set(next);
         })
     };

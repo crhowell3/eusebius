@@ -2,7 +2,7 @@ use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 /// Builds a callback for a plain text or select field, reading `input.value()` on
-/// `InputEvent` and emitting `()
+/// `InputEvent` and emitting `(id, field_name, value)`
 ///
 /// Usage:
 /// ```
@@ -41,7 +41,7 @@ pub fn make_formatted_callback<T: Clone + 'static>(
     Callback::from(move |e: InputEvent| {
         if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
             let formatted = formatter(&input.value());
-            let _ = input.set_value(&formatted);
+            input.set_value(&formatted);
             on_field_change.emit((id.clone(), field_name, formatted));
         }
     })
@@ -60,7 +60,7 @@ where
     Callback::from(move |e: InputEvent| {
         if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
             let formatted = formatter(&input.value());
-            let _ = input.set_value(&formatted);
+            input.set_value(&formatted);
             dispatcher.dispatch(make_action(field_name.to_string(), formatted));
         }
     })

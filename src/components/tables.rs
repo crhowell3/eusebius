@@ -10,7 +10,7 @@ pub use deaths_table::DeathsTable;
 pub use families_table::FamiliesTable;
 pub use works_table::WorksTable;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum TableMode {
     View,
     Edit,

@@ -76,8 +76,9 @@ pub fn member_tab_body() -> Html {
                         {
                             let form_open = form_open.clone();
                             let refresh_trigger = refresh_trigger.clone();
-                            Callback::from(move |_: ()| {
-                                refresh_trigger.set(*refresh_trigger + 1); form_open.set(false)
+                            Callback::from(move |(): ()| {
+                                refresh_trigger.set(refresh_trigger.wrapping_add(1));
+                                form_open.set(false);
                             })
                         }
                     } />

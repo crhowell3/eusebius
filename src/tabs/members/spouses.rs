@@ -1,6 +1,5 @@
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
-use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
@@ -21,7 +20,7 @@ async fn fetch_spouse(family_id: &str) -> Result<Option<Spouse>, String> {
     .map_err(|e| e.to_string())?;
     let result = invoke("get_spouse", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
     from_value::<Option<Spouse>>(result).map_err(|e| e.to_string())
 }
 
@@ -33,12 +32,12 @@ async fn save_spouse(spouse: Spouse) -> Result<(), String> {
     let args = to_value(&Args { spouse }).map_err(|e| e.to_string())?;
     let _ = invoke("save_spouse", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
 
-#[derive(Properties, PartialEq)]
+#[derive(Properties, PartialEq, Eq)]
 pub struct SpousesProps {
     pub selected_family_id: Option<String>,
 }
@@ -60,35 +59,32 @@ pub fn spouses(props: &SpousesProps) -> Html {
         let is_existing = is_existing.clone();
         let family_id = props.selected_family_id.clone();
 
-        use_effect_with(family_id.clone(), move |family_id| {
-            match family_id.clone() {
-                Some(fid) => {
-                    loading.set(true);
-                    spawn_local(async move {
-                        match fetch_spouse(&fid).await {
-                            Ok(Some(existing)) => {
-                                spouse.dispatch(SpouseAction::Load(existing));
-                                is_existing.set(true);
-                            }
-                            Ok(None) => {
-                                spouse.dispatch(SpouseAction::Reset);
-                                spouse.dispatch(SpouseAction::SetField {
-                                    name: "family_id".to_string(),
-                                    value: fid,
-                                });
-                                is_existing.set(false);
-                            }
-                            Err(e) => error.set(Some(e)),
+        use_effect_with(family_id, move |family_id| {
+            if let Some(fid) = family_id.clone() {
+                loading.set(true);
+                spawn_local(async move {
+                    match fetch_spouse(&fid).await {
+                        Ok(Some(existing)) => {
+                            spouse.dispatch(SpouseAction::Load(existing));
+                            is_existing.set(true);
                         }
-                        dirty.set(false);
-                        loading.set(false);
-                    });
-                }
-                None => {
-                    spouse.dispatch(SpouseAction::Reset);
+                        Ok(None) => {
+                            spouse.dispatch(SpouseAction::Reset);
+                            spouse.dispatch(SpouseAction::SetField {
+                                name: "family_id".to_string(),
+                                value: fid,
+                            });
+                            is_existing.set(false);
+                        }
+                        Err(e) => error.set(Some(e)),
+                    }
                     dirty.set(false);
-                    is_existing.set(false);
-                }
+                    loading.set(false);
+                });
+            } else {
+                spouse.dispatch(SpouseAction::Reset);
+                dirty.set(false);
+                is_existing.set(false);
             }
             || ()
         });
@@ -119,8 +115,7 @@ pub fn spouses(props: &SpousesProps) -> Html {
         let spouse = spouse.dispatcher();
         let dirty = dirty.clone();
         Callback::from(move |e: InputEvent| {
-            let target = e.target().unwrap();
-            let (name, value) = if let Ok(input) = target.dyn_into::<HtmlInputElement>() {
+            let (name, value) = if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                 (input.name(), input.value())
             } else {
                 return;
@@ -134,12 +129,13 @@ pub fn spouses(props: &SpousesProps) -> Html {
         let spouse = spouse.dispatcher();
         let dirty = dirty.clone();
         Callback::from(move |e: Event| {
-            let input = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-            spouse.dispatch(SpouseAction::SetBool {
-                name: field.to_string(),
-                value: input.checked(),
-            });
-            dirty.set(true);
+            if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
+                spouse.dispatch(SpouseAction::SetBool {
+                    name: field.to_string(),
+                    value: input.checked(),
+                });
+                dirty.set(true);
+            }
         })
     };
 
@@ -158,7 +154,7 @@ pub fn spouses(props: &SpousesProps) -> Html {
             saving.set(true);
             spawn_local(async move {
                 match save_spouse(payload).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         dirty.set(false);
                         error.set(None);
                         is_existing.set(true);

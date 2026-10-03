@@ -34,6 +34,9 @@ strip = true
 [lints.clippy]
 pedantic = { level = "deny", priority = -1 }
 nursery = { level = "deny", priority = -1 }
+
+future_not_send = "allow"
+
 # DENY PANICS
 unwrap_used = "deny"
 expect_used = "deny"

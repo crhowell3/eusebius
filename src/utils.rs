@@ -19,6 +19,7 @@ extern "C" {
     pub async fn writeText(text: &str);
 }
 
+#[must_use]
 pub fn is_valid_date(s: &str) -> bool {
     if s.len() != 10 {
         return false;
@@ -29,9 +30,9 @@ pub fn is_valid_date(s: &str) -> bool {
         return false;
     }
 
-    if parts.get(0).map_or(false, |p| p.len() != 4)
-        || parts.get(1).map_or(false, |p| p.len() != 2)
-        || parts.get(2).map_or(false, |p| p.len() != 2)
+    if parts.first().is_some_and(|p| p.len() != 4)
+        || parts.get(1).is_some_and(|p| p.len() != 2)
+        || parts.get(2).is_some_and(|p| p.len() != 2)
     {
         return false;
     }
@@ -55,13 +56,12 @@ pub fn format_date(raw: &str) -> String {
         0 => String::new(),
         1..=4 => digits.to_string(),
         5..=6 => format!("{year}-{month}", year = &digits[..4], month = &digits[4..]),
-        7..=8 => format!(
+        _ => format!(
             "{year}-{month}-{day}",
             year = &digits[..4],
             month = &digits[4..6],
             day = &digits[6..]
         ),
-        _ => unreachable!(),
     }
 }
 
@@ -90,7 +90,7 @@ pub fn format_phone(raw: &str) -> String {
 pub async fn fetch_records<T: DeserializeOwned>(cmd: &str) -> Result<Vec<T>, String> {
     let result = invoke(cmd, JsValue::UNDEFINED)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
     from_value::<Vec<T>>(result).map_err(|e| e.to_string())
 }
 
@@ -109,8 +109,7 @@ pub fn apply_theme(theme: &str) {
                 .match_media("(prefers-color-scheme: dark)")
                 .ok()
                 .flatten()
-                .map(|m| m.matches())
-                .unwrap_or(false);
+                .is_some_and(|m| m.matches());
             if prefers_dark { "dark" } else { "light" }
         }
     };
