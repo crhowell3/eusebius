@@ -5,6 +5,9 @@ use models::Baptism;
 
 use super::DbState;
 
+/// # Errors
+///
+/// Returns an error if the baptisms cannot be retrieved.
 #[tauri::command]
 pub async fn get_baptisms(db: State<'_, DbState>) -> Result<Vec<Baptism>, String> {
     sqlx::query_as::<_, Baptism>("SELECT * FROM baptisms")
@@ -13,6 +16,9 @@ pub async fn get_baptisms(db: State<'_, DbState>) -> Result<Vec<Baptism>, String
         .map_err(|e| e.to_string())
 }
 
+/// # Errors
+///
+/// Returns an error if the baptisms cannot be retrieved.
 #[tauri::command]
 pub async fn add_baptism(db: State<'_, DbState>, baptism: Baptism) -> Result<(), String> {
     sqlx::query(
@@ -32,6 +38,9 @@ pub async fn add_baptism(db: State<'_, DbState>, baptism: Baptism) -> Result<(),
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if the baptisms cannot be updated.
 #[tauri::command]
 pub async fn update_baptism(db: State<'_, DbState>, baptism: Baptism) -> Result<(), String> {
     sqlx::query("UPDATE baptisms SET last_name = ?, first_name = ?, date_baptized = ?, witness = ?, location = ? WHERE family_id = ?")
@@ -48,6 +57,9 @@ pub async fn update_baptism(db: State<'_, DbState>, baptism: Baptism) -> Result<
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if the baptisms cannot be deleted.
 #[tauri::command]
 pub async fn delete_baptisms(
     db: State<'_, DbState>,

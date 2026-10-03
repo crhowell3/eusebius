@@ -5,6 +5,9 @@ use models::Work;
 
 use super::DbState;
 
+/// # Errors
+///
+/// Returns an error if the works cannot be retrieved.
 #[tauri::command]
 pub async fn get_works(db: State<'_, DbState>) -> Result<Vec<Work>, String> {
     sqlx::query_as::<_, Work>(
@@ -19,6 +22,9 @@ pub async fn get_works(db: State<'_, DbState>) -> Result<Vec<Work>, String> {
     .map_err(|e| e.to_string())
 }
 
+/// # Errors
+///
+/// Returns an error if the works cannot be retrieved.
 #[tauri::command]
 pub async fn add_work(db: State<'_, DbState>, work: Work) -> Result<(), String> {
     sqlx::query(
@@ -34,6 +40,9 @@ pub async fn add_work(db: State<'_, DbState>, work: Work) -> Result<(), String> 
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if the work cannot be updated.
 #[tauri::command]
 pub async fn update_work(db: State<'_, DbState>, work: Work) -> Result<(), String> {
     sqlx::query("UPDATE works SET description = ?, category_id = ? WHERE id = ?")
@@ -47,6 +56,9 @@ pub async fn update_work(db: State<'_, DbState>, work: Work) -> Result<(), Strin
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if the works cannot be deleted.
 #[tauri::command]
 pub async fn delete_works(db: State<'_, DbState>, work_ids: Vec<i64>) -> Result<(), String> {
     if work_ids.is_empty() {

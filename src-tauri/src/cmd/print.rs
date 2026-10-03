@@ -10,6 +10,9 @@ pub struct PrintBirthdays {
     pub day: String,
 }
 
+/// # Errors
+///
+/// Returns an error if the print preview fails to open.
 #[tauri::command]
 pub async fn print_birthdays(
     app: tauri::AppHandle,

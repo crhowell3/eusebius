@@ -4,6 +4,9 @@ use models::{MemberWorkView, Person};
 
 use super::DbState;
 
+/// # Errors
+///
+/// Returns an error if the persons cannot be retrieved.
 #[tauri::command]
 pub async fn get_persons_for_family(
     db: State<'_, DbState>,
@@ -25,6 +28,9 @@ pub async fn get_persons_for_family(
     .map_err(|e| e.to_string())
 }
 
+/// # Errors
+///
+/// Returns an error if the works cannot be retrieved.
 #[tauri::command]
 pub async fn get_works_for_person(
     db: State<'_, DbState>,
@@ -48,6 +54,9 @@ pub async fn get_works_for_person(
     .map_err(|e| e.to_string())
 }
 
+/// # Errors
+///
+/// Returns an error if the persons cannot be retrieved.
 #[tauri::command]
 pub async fn get_persons_for_work(
     db: State<'_, DbState>,
@@ -71,6 +80,9 @@ pub async fn get_persons_for_work(
     .map_err(|e| e.to_string())
 }
 
+/// # Errors
+///
+/// Returns an error if the works cannot be retrieved.
 #[tauri::command]
 pub async fn set_works_for_person(
     db: State<'_, DbState>,
@@ -84,14 +96,12 @@ pub async fn set_works_for_person(
         .map_err(|e| e.to_string())?;
 
     for work_id in &work_ids {
-        sqlx::query(
-            "INSERT OR IGNORE INTO member_works (person_id, work_id) VALUES (?, ?)"
-        )
-        .bind(person_id)
-        .bind(work_id)
-        .execute(&db.0)
-        .await
-        .map_err(|e| e.to_string())?;
+        sqlx::query("INSERT OR IGNORE INTO member_works (person_id, work_id) VALUES (?, ?)")
+            .bind(person_id)
+            .bind(work_id)
+            .execute(&db.0)
+            .await
+            .map_err(|e| e.to_string())?;
     }
 
     Ok(())

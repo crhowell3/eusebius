@@ -5,6 +5,9 @@ use models::Death;
 
 use super::DbState;
 
+/// # Errors
+///
+/// Returns an error if the deaths cannot be retrieved.
 #[tauri::command]
 pub async fn get_deaths(db: State<'_, DbState>) -> Result<Vec<Death>, String> {
     sqlx::query_as::<_, Death>("SELECT * FROM deaths")
@@ -13,6 +16,9 @@ pub async fn get_deaths(db: State<'_, DbState>) -> Result<Vec<Death>, String> {
         .map_err(|e| e.to_string())
 }
 
+/// # Errors
+///
+/// Returns an error if the death cannot be added.
 #[tauri::command]
 pub async fn add_death(db: State<'_, DbState>, death: Death) -> Result<(), String> {
     sqlx::query(
@@ -29,6 +35,9 @@ pub async fn add_death(db: State<'_, DbState>, death: Death) -> Result<(), Strin
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if the death cannot be updated.
 #[tauri::command]
 pub async fn update_death(db: State<'_, DbState>, death: Death) -> Result<(), String> {
     sqlx::query("UPDATE deaths SET first_name = ?, last_name = ?, date_of_death = ? WHERE id = ?")
@@ -43,6 +52,9 @@ pub async fn update_death(db: State<'_, DbState>, death: Death) -> Result<(), St
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if the deaths cannot be deleted.
 #[tauri::command]
 pub async fn delete_deaths(db: State<'_, DbState>, death_ids: Vec<i64>) -> Result<(), String> {
     if death_ids.is_empty() {

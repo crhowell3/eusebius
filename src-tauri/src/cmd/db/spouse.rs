@@ -4,6 +4,9 @@ use models::Spouse;
 
 use super::DbState;
 
+/// # Errors
+///
+/// Returns an error if the spouse cannot be retrieved.
 #[tauri::command]
 pub async fn get_spouse(
     db: State<'_, DbState>,
@@ -21,6 +24,9 @@ pub async fn get_spouse(
     .map_err(|e| e.to_string())
 }
 
+/// # Errors
+///
+/// Returns an error if the spouse cannot be saved.
 #[tauri::command]
 pub async fn save_spouse(db: State<'_, DbState>, spouse: Spouse) -> Result<(), String> {
     sqlx::query(

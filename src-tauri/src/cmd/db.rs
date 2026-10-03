@@ -1,5 +1,5 @@
 use sqlx::SqlitePool;
-use tauri::State;
+use tauri::Manager;
 
 use models::TableInfo;
 
@@ -23,17 +23,26 @@ pub use persons::*;
 pub use spouse::*;
 pub use works::*;
 
+/// # Errors
+///
+/// Returns an error if the list of tables cannot be retrieved.
 #[tauri::command]
-pub async fn list_tables(db: State<'_, DbState>) -> Result<Vec<TableInfo>, String> {
-    let path =
-        db.0.connect_options()
-            .get_filename()
-            .to_string_lossy()
-            .to_string();
+pub async fn list_tables(app: tauri::AppHandle) -> Result<Vec<TableInfo>, String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
+    let path = pool
+        .connect_options()
+        .get_filename()
+        .to_string_lossy()
+        .to_string();
 
     let tables =
         sqlx::query_scalar!("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
-            .fetch_all(&db.0)
+            .fetch_all(&pool)
             .await
             .map_err(|e| e.to_string())?;
 

@@ -5,6 +5,9 @@ use models::Family;
 
 use super::DbState;
 
+/// # Errors
+///
+/// Returns an error if the families cannot be retrieved.
 #[tauri::command]
 pub async fn get_families(db: State<'_, DbState>) -> Result<Vec<Family>, String> {
     sqlx::query_as::<_, Family>("SELECT * FROM families")
@@ -13,6 +16,9 @@ pub async fn get_families(db: State<'_, DbState>) -> Result<Vec<Family>, String>
         .map_err(|e| e.to_string())
 }
 
+/// # Errors
+///
+/// Returns an error if the family cannot be added.
 #[tauri::command]
 pub async fn add_family(db: State<'_, DbState>, family: Family) -> Result<(), String> {
     let next_id: String =
@@ -63,6 +69,9 @@ pub async fn add_family(db: State<'_, DbState>, family: Family) -> Result<(), St
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if the family cannot be updated.
 #[tauri::command]
 pub async fn update_family(db: State<'_, DbState>, family: Family) -> Result<(), String> {
     sqlx::query("UPDATE families SET mail_route = ?, last_name = ?, first_name = ?, is_member = ?, is_active = ?, date_of_birth = ?, anniversary_month = ?, anniversary_day = ?, home_phone = ?, cell_phone = ?, work_phone = ?, address = ?, city = ?, state = ?, zip = ?, email_address = ?, on_bulletin_email_list = ? WHERE family_id = ?")
@@ -91,6 +100,9 @@ pub async fn update_family(db: State<'_, DbState>, family: Family) -> Result<(),
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if the families cannot be deleted.
 #[tauri::command]
 pub async fn delete_families(
     db: State<'_, DbState>,

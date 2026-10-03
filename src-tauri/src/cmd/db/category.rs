@@ -5,6 +5,9 @@ use models::Category;
 
 use super::DbState;
 
+/// # Errors
+///
+/// Returns an error if the categories cannot be retrieved.
 #[tauri::command]
 pub async fn get_categories(db: State<'_, DbState>) -> Result<Vec<Category>, String> {
     sqlx::query_as::<_, Category>(
@@ -17,6 +20,9 @@ pub async fn get_categories(db: State<'_, DbState>) -> Result<Vec<Category>, Str
     .map_err(|e| e.to_string())
 }
 
+/// # Errors
+///
+/// Returns an error if the category cannot be added.
 #[tauri::command]
 pub async fn add_category(
     db: State<'_, DbState>,
@@ -58,6 +64,9 @@ pub async fn add_category(
     })
 }
 
+/// # Errors
+///
+/// Returns an error if the category cannot be updated.
 #[tauri::command]
 pub async fn update_category(
     db: State<'_, DbState>,
@@ -94,6 +103,9 @@ pub async fn update_category(
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if the categories cannot be deleted.
 #[tauri::command]
 pub async fn delete_categories(db: State<'_, DbState>, ids: Vec<i64>) -> Result<(), String> {
     if ids.is_empty() {
