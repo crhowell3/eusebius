@@ -40,9 +40,9 @@ pub fn make_formatted_callback<T: Clone + 'static>(
 ) -> Callback<InputEvent> {
     Callback::from(move |e: InputEvent| {
         if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
-            let formatted = formatter(&input.value());
-            input.set_value(&formatted);
-            on_field_change.emit((id.clone(), field_name, formatted));
+            let formatted_string = formatter(&input.value());
+            input.set_value(&formatted_string);
+            on_field_change.emit((id.clone(), field_name, formatted_string));
         }
     })
 }
@@ -59,9 +59,9 @@ where
 {
     Callback::from(move |e: InputEvent| {
         if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
-            let formatted = formatter(&input.value());
-            input.set_value(&formatted);
-            dispatcher.dispatch(make_action(field_name.to_string(), formatted));
+            let formatted_string = formatter(&input.value());
+            input.set_value(&formatted_string);
+            dispatcher.dispatch(make_action(field_name.to_string(), formatted_string));
         }
     })
 }

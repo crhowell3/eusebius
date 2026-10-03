@@ -11,15 +11,11 @@ use crate::on_sort;
 use crate::utils::{fetch_records, invoke};
 use models::{Category, Work};
 
-#[derive(Properties, PartialEq)]
+use super::TableMode;
+
+#[derive(Properties, PartialEq, Eq)]
 pub struct WorksTableProps {
     pub refresh_trigger: u32,
-}
-
-#[derive(Clone, PartialEq)]
-enum TableMode {
-    View,
-    Edit,
 }
 
 async fn delete_works(work_ids: Vec<i64>) -> Result<(), String> {

@@ -203,14 +203,15 @@ pub fn children(props: &ChildrenTableProps) -> Html {
                     title: String,
                 }
 
-                let args = to_value(&DialogArgs {
+                let Ok(args) = to_value(&DialogArgs {
                     message: format!(
                         "Delete {count} selected famil{}? All associated records will also be deleted. This cannot be undone.",
                         if count == 1 { "y" } else { "ies" }
                     ),
                     title: "Confirm Delete".to_string(),
-                })
-                .unwrap();
+                }) else {
+                    return;
+                };
 
                 let Ok(confirmed) = invoke("show_confirm_dialog", args).await else {
                     return;

@@ -21,7 +21,7 @@ async fn delete_baptisms(family_ids: Vec<String>) -> Result<(), String> {
     let args = to_value(&Args { family_ids }).map_err(|e| e.to_string())?;
     let _ = invoke("delete_baptisms", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -35,7 +35,7 @@ async fn update_baptism(baptism: Baptism) -> Result<(), String> {
     let args = to_value(&Args { baptism }).map_err(|e| e.to_string())?;
     let _ = invoke("update_baptism", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -70,7 +70,7 @@ fn sort_baptisms(baptisms: &[Baptism], sort: &SortState<SortColumn>) -> Vec<Bapt
     sorted
 }
 
-#[derive(Properties, PartialEq)]
+#[derive(Properties, PartialEq, Eq)]
 pub struct BaptismsTableProps {
     pub refresh_trigger: u32,
 }
@@ -111,7 +111,7 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
         });
     }
 
-    let sorted_baptisms = sort_baptisms(&*baptisms, &*sort);
+    let sorted_baptisms = sort_baptisms(&baptisms, &sort);
 
     let dirty = *baptisms != *saved_baptisms;
     let some_checked = !(*selected).is_empty();
@@ -204,14 +204,15 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                     title: String,
                 }
 
-                let args = to_value(&DialogArgs {
+                let Ok(args) = to_value(&DialogArgs {
                     message: format!(
                         "Delete {count} selected baptism{}? This cannot be undone.",
                         if count == 1 { "" } else { "s" }
                     ),
                     title: "Confirm Delete".to_string(),
-                })
-                .unwrap();
+                }) else {
+                    return;
+                };
 
                 let Ok(confirmed) = invoke("show_confirm_dialog", args).await else {
                     return;
@@ -222,7 +223,7 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                 }
 
                 match delete_baptisms(to_delete).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         let remaining: Vec<Baptism> = (*baptisms)
                             .iter()
                             .filter(|b| !(*selected).contains(&b.family_id))
@@ -242,10 +243,8 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
 
     let on_save_edits = {
         let baptisms = baptisms.clone();
-        let saved_baptisms = saved_baptisms.clone();
         let error = error.clone();
         let saving = saving.clone();
-        let mode = mode.clone();
 
         Callback::from(move |_: MouseEvent| {
             let snapshot = (*saved_baptisms).clone();
@@ -271,7 +270,6 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                 return;
             }
 
-            let baptisms = baptisms.clone();
             let saved_baptisms = saved_baptisms.clone();
             let error = error.clone();
             let saving = saving.clone();
@@ -301,8 +299,6 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
     };
 
     let on_field_change = {
-        let baptisms = baptisms.clone();
-
         Callback::from(
             move |(family_id, field, value): (String, &'static str, String)| {
                 baptisms.set({
@@ -315,9 +311,7 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                             "date_baptized" => b.date_baptized = value,
                             "witness" => b.witness = value,
                             "location" => b.location = value,
-                            _ => {
-                                unreachable!()
-                            }
+                            &_ => {}
                         }
                     }
                     next
@@ -442,8 +436,8 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "Family ID" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::FamilyId,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::FamilyId,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -452,8 +446,8 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "Last Name" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::LastName,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::LastName,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -462,8 +456,8 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "First Name" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::FirstName,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::FirstName,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -472,8 +466,8 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "Date Baptized" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::DateBaptized,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::DateBaptized,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -482,8 +476,8 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "Witness" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::Witness,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::Witness,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -492,8 +486,8 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "Location" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::Location,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::Location,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -513,9 +507,8 @@ pub fn baptisms_table(props: &BaptismsTableProps) -> Html {
                                         let on_field_change = on_field_change.clone();
                                         let family_id = family_id.clone();
                                         Callback::from(move |e: InputEvent| {
-                                            use wasm_bindgen::JsCast;
                                             use web_sys::HtmlInputElement;
-                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+                                            if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                                                 on_field_change.emit((family_id.clone(), field_name, input.value()));
                                             }
                                         })

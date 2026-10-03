@@ -1,6 +1,5 @@
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
-use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
@@ -17,7 +16,7 @@ async fn add_category(tag: String, name: String) -> Result<Category, String> {
     let args = to_value(&Args { tag, name }).map_err(|e| e.to_string())?;
     let result = invoke("add_category", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
     from_value::<Category>(result).map_err(|e| e.to_string())
 }
 
@@ -34,13 +33,12 @@ pub fn categories_form(props: &CategoriesFormProps) -> Html {
     let on_tag_input = {
         let new_category = new_category.dispatcher();
         Callback::from(move |e: InputEvent| {
-            use wasm_bindgen::JsCast;
             use web_sys::HtmlInputElement;
-            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+            if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                 let val = input
                     .value()
                     .chars()
-                    .filter(|c| c.is_ascii_alphabetic())
+                    .filter(char::is_ascii_alphabetic)
                     .collect::<String>()
                     .to_uppercase();
                 new_category.dispatch(CategoryAction::SetTag(val));
@@ -51,7 +49,7 @@ pub fn categories_form(props: &CategoriesFormProps) -> Html {
     let on_name_input = {
         let new_category = new_category.dispatcher();
         Callback::from(move |e: InputEvent| {
-            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+            if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                 new_category.dispatch(CategoryAction::SetName(input.value()));
             }
         })

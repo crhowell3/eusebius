@@ -1,6 +1,5 @@
 use serde::Serialize;
 use serde_wasm_bindgen::to_value;
-use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
@@ -18,7 +17,7 @@ async fn add_death(death: Death) -> Result<(), String> {
     let args = to_value(&AddDeathArgs { death }).map_err(|e| e.to_string())?;
     let _ = invoke("add_death", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -43,12 +42,15 @@ pub fn deaths_form(props: &DeathsFormProps) -> Html {
     let handle_death_change = {
         let new_death = new_death.dispatcher();
         Callback::from(move |e: InputEvent| {
-            let target = e.target().unwrap();
-            let (name, value) = if let Ok(input) = target.clone().dyn_into::<HtmlInputElement>() {
-                (input.name(), input.value())
-            } else if let Ok(textarea) = target.dyn_into::<HtmlTextAreaElement>() {
-                (textarea.name(), textarea.value())
-            } else {
+            let field = e
+                .target_dyn_into::<HtmlInputElement>()
+                .map(|el| (el.name(), el.value()))
+                .or_else(|| {
+                    e.target_dyn_into::<HtmlTextAreaElement>()
+                        .map(|el| (el.name(), el.value()))
+                });
+
+            let Some((name, value)) = field else {
                 return;
             };
             new_death.dispatch(GenericAction::SetField { name, value });
@@ -66,7 +68,7 @@ pub fn deaths_form(props: &DeathsFormProps) -> Html {
             let on_death_added = on_death_added.clone();
             spawn_local(async move {
                 match add_death(death).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         new_death.dispatch(GenericAction::Reset);
                         form_error.set(None);
                         on_death_added.emit(());

@@ -21,27 +21,16 @@ extern "C" {
 
 #[must_use]
 pub fn is_valid_date(s: &str) -> bool {
-    if s.len() != 10 {
-        return false;
-    }
-
     let parts: Vec<&str> = s.split('-').collect();
-    if parts.len() != 3 {
+    let [y, m, d] = parts.as_slice() else {
+        return false;
+    };
+
+    if y.len() != 4 || m.len() != 2 || d.len() != 2 {
         return false;
     }
 
-    if parts.first().is_some_and(|p| p.len() != 4)
-        || parts.get(1).is_some_and(|p| p.len() != 2)
-        || parts.get(2).is_some_and(|p| p.len() != 2)
-    {
-        return false;
-    }
-
-    let (Ok(y), Ok(m), Ok(d)) = (
-        parts[0].parse::<i32>(),
-        parts[1].parse::<u32>(),
-        parts[2].parse::<u32>(),
-    ) else {
+    let (Ok(y), Ok(m), Ok(d)) = (y.parse::<i32>(), m.parse::<u32>(), d.parse::<u32>()) else {
         return false;
     };
 
@@ -49,20 +38,16 @@ pub fn is_valid_date(s: &str) -> bool {
 }
 
 pub fn format_date(raw: &str) -> String {
-    let digits: String = raw.chars().filter(char::is_ascii_digit).collect();
-    let digits = &digits[..digits.len().min(8)];
+    let mut out = String::with_capacity(10);
 
-    match digits.len() {
-        0 => String::new(),
-        1..=4 => digits.to_string(),
-        5..=6 => format!("{year}-{month}", year = &digits[..4], month = &digits[4..]),
-        _ => format!(
-            "{year}-{month}-{day}",
-            year = &digits[..4],
-            month = &digits[4..6],
-            day = &digits[6..]
-        ),
+    for (i, c) in raw.chars().filter(char::is_ascii_digit).take(8).enumerate() {
+        if i == 4 || i == 6 {
+            out.push('-');
+        }
+        out.push(c);
     }
+
+    out
 }
 
 #[must_use]
@@ -87,6 +72,9 @@ pub fn format_phone(raw: &str) -> String {
     out
 }
 
+/// # Errors
+///
+/// Returns an error if the fetch fails or the response is not a valid JSON array.
 pub async fn fetch_records<T: DeserializeOwned>(cmd: &str) -> Result<Vec<T>, String> {
     let result = invoke(cmd, JsValue::UNDEFINED)
         .await

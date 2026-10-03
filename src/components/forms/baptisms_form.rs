@@ -1,6 +1,5 @@
 use serde::Serialize;
 use serde_wasm_bindgen::to_value;
-use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
@@ -18,7 +17,7 @@ async fn add_baptism(baptism: Baptism) -> Result<(), String> {
     let args = to_value(&AddBaptismArgs { baptism }).map_err(|e| e.to_string())?;
     let _ = invoke("add_baptism", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -56,16 +55,17 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
     let handle_baptism_change = {
         let new_baptism = new_baptism.dispatcher();
         Callback::from(move |e: InputEvent| {
-            let target = e.target().unwrap();
+            let field = e
+                .target_dyn_into::<HtmlInputElement>()
+                .map(|el| (el.name(), el.value()))
+                .or_else(|| {
+                    e.target_dyn_into::<HtmlTextAreaElement>()
+                        .map(|el| (el.name(), el.value()))
+                });
 
-            let (name, value) = if let Ok(input) = target.clone().dyn_into::<HtmlInputElement>() {
-                (input.name(), input.value())
-            } else if let Ok(textarea) = target.dyn_into::<HtmlTextAreaElement>() {
-                (textarea.name(), textarea.value())
-            } else {
+            let Some((name, value)) = field else {
                 return;
             };
-
             new_baptism.dispatch(GenericAction::SetField { name, value });
         })
     };
@@ -81,18 +81,18 @@ pub fn baptisms_form(props: &BaptismsFormProps) -> Html {
             let on_baptism_added = on_baptism_added.clone();
             spawn_local(async move {
                 match add_baptism(baptism).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         new_baptism.dispatch(GenericAction::Reset);
                         form_error.set(None);
                         on_baptism_added.emit(());
                     }
                     Err(e) => form_error.set(Some(e)),
                 }
-            })
+            });
         })
     };
 
-    let is_valid = is_valid_baptism(&*new_baptism);
+    let is_valid = is_valid_baptism(&new_baptism);
 
     html! {
         <aside class="works-form-card">
