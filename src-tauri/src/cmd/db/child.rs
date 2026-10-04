@@ -1,15 +1,24 @@
 use sqlx::QueryBuilder;
-use tauri::State;
+use tauri::Manager;
 
 use models::Child;
 
 use super::DbState;
 
+/// # Errors
+///
+/// Returns an error if the children cannot be retrieved.
 #[tauri::command]
 pub async fn get_children_by_family(
-    db: State<'_, DbState>,
+    app: tauri::AppHandle,
     family_id: String,
 ) -> Result<Vec<Child>, String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     sqlx::query_as::<_, Child>(
         "SELECT id, person_id, family_id, first_name, last_name, is_member, is_active, date_of_birth, cell_phone, work_phone, email_address, on_bulletin_email_list
             FROM children
@@ -17,22 +26,31 @@ pub async fn get_children_by_family(
             ORDER BY id ASC"
         )
     .bind(&family_id)
-    .fetch_all(&db.0)
+    .fetch_all(&pool)
     .await
     .map_err(|e| e.to_string())
 }
 
+/// # Errors
+///
+/// Returns an error if the child cannot be added or updated.
 #[tauri::command]
-pub async fn add_or_update_child(db: State<'_, DbState>, child: Child) -> Result<Child, String> {
+pub async fn add_or_update_child(app: tauri::AppHandle, child: Child) -> Result<Child, String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     let (id, person_id) = if child.id <= 0 {
         let person_id: i64 = sqlx::query_scalar(
             "INSERT INTO persons (family_id, role, first_name, last_name)
-             VALUES (?, 'child', ?, ?) RETURNING id"
+             VALUES (?, 'child', ?, ?) RETURNING id",
         )
         .bind(&child.family_id)
         .bind(&child.first_name)
         .bind(&child.last_name)
-        .fetch_one(&db.0)
+        .fetch_one(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -44,7 +62,7 @@ pub async fn add_or_update_child(db: State<'_, DbState>, child: Child) -> Result
                  RETURNING id",
         )
         .bind(&child.family_id)
-        .bind(&person_id)
+        .bind(person_id)
         .bind(&child.first_name)
         .bind(&child.last_name)
         .bind(child.is_member)
@@ -54,7 +72,7 @@ pub async fn add_or_update_child(db: State<'_, DbState>, child: Child) -> Result
         .bind(&child.work_phone)
         .bind(&child.email_address)
         .bind(child.on_bulletin_email_list)
-        .fetch_one(&db.0)
+        .fetch_one(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -77,45 +95,55 @@ pub async fn add_or_update_child(db: State<'_, DbState>, child: Child) -> Result
         .bind(&child.email_address)
         .bind(child.on_bulletin_email_list)
         .bind(child.id)
-        .execute(&db.0)
+        .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
         if let Some(pid) = child.person_id {
-            sqlx::query(
-                "UPDATE persons SET first_name = ?, last_name = ? WHERE id = ?"
-            )
-            .bind(&child.first_name)
-            .bind(&child.last_name)
-            .bind(pid)
-            .execute(&db.0)
-            .await
-            .map_err(|e| e.to_string())?;
+            sqlx::query("UPDATE persons SET first_name = ?, last_name = ? WHERE id = ?")
+                .bind(&child.first_name)
+                .bind(&child.last_name)
+                .bind(pid)
+                .execute(&pool)
+                .await
+                .map_err(|e| e.to_string())?;
         }
 
         (child.id, child.person_id)
     };
 
     Ok(Child {
-        id, person_id, ..child
+        id,
+        person_id,
+        ..child
     })
 }
 
+/// # Errors
+///
+/// Returns an error if the children cannot be deleted.
 #[tauri::command]
-pub async fn delete_children(db: State<'_, DbState>, child_ids: Vec<i64>) -> Result<(), String> {
+pub async fn delete_children(app: tauri::AppHandle, child_ids: Vec<i64>) -> Result<(), String> {
     if child_ids.is_empty() {
         return Ok(());
     }
 
-    let mut builder = QueryBuilder::new(
-        "SELECT person_id FROM children WHERE person_id IS NOT NULL AND id IN ("
-    );
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
+    let mut builder =
+        QueryBuilder::new("SELECT person_id FROM children WHERE person_id IS NOT NULL AND id IN (");
     let mut separated = builder.separated(", ");
-    for id in &child_ids { separated.push_bind(id); }
+    for id in &child_ids {
+        separated.push_bind(id);
+    }
     separated.push_unseparated(")");
     let person_ids: Vec<i64> = builder
         .build_query_scalar()
-        .fetch_all(&db.0)
+        .fetch_all(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -127,16 +155,22 @@ pub async fn delete_children(db: State<'_, DbState>, child_ids: Vec<i64>) -> Res
     separated.push_unseparated(")");
     builder
         .build()
-        .execute(&db.0)
+        .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
     if !person_ids.is_empty() {
         let mut builder = QueryBuilder::new("DELETE FROM persons WHERE id IN (");
         let mut separated = builder.separated(", ");
-        for id in &person_ids { separated.push_bind(id); }
+        for id in &person_ids {
+            separated.push_bind(id);
+        }
         separated.push_unseparated(")");
-        builder.build().execute(&db.0).await.map_err(|e| e.to_string())?;
+        builder
+            .build()
+            .execute(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
     }
 
     Ok(())

@@ -1,25 +1,37 @@
 use sqlx::QueryBuilder;
-use tauri::State;
+use tauri::Manager;
 
 use models::Category;
 
 use super::DbState;
 
+/// # Errors
+///
+/// Returns an error if the categories cannot be retrieved.
 #[tauri::command]
-pub async fn get_categories(db: State<'_, DbState>) -> Result<Vec<Category>, String> {
+pub async fn get_categories(app: tauri::AppHandle) -> Result<Vec<Category>, String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     sqlx::query_as::<_, Category>(
         "SELECT * FROM categories ORDER BY
             CASE WHEN tag = 'MISC' THEN 1 ELSE 0 END,  -- MISC always last
             length(tag), tag",
     )
-    .fetch_all(&db.0)
+    .fetch_all(&pool)
     .await
     .map_err(|e| e.to_string())
 }
 
+/// # Errors
+///
+/// Returns an error if the category cannot be added.
 #[tauri::command]
 pub async fn add_category(
-    db: State<'_, DbState>,
+    app: tauri::AppHandle,
     tag: String,
     name: String,
 ) -> Result<Category, String> {
@@ -31,10 +43,16 @@ pub async fn add_category(
         return Err("Category name cannot be empty".to_string());
     }
 
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     let tag = tag.to_uppercase();
     let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM categories WHERE tag = ?)")
         .bind(&tag)
-        .fetch_one(&db.0)
+        .fetch_one(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -47,7 +65,7 @@ pub async fn add_category(
     )
     .bind(&tag)
     .bind(name.trim())
-    .fetch_one(&db.0)
+    .fetch_one(&pool)
     .await
     .map_err(|e| e.to_string())?;
 
@@ -58,9 +76,12 @@ pub async fn add_category(
     })
 }
 
+/// # Errors
+///
+/// Returns an error if the category cannot be updated.
 #[tauri::command]
 pub async fn update_category(
-    db: State<'_, DbState>,
+    app: tauri::AppHandle,
     id: i64,
     tag: String,
     name: String,
@@ -69,13 +90,19 @@ pub async fn update_category(
         return Err("Tag must contain only letters".to_string());
     }
 
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     let tag = tag.to_uppercase();
 
     let exists: bool =
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM categories WHERE tag = ? AND id != ?)")
             .bind(&tag)
             .bind(id)
-            .fetch_one(&db.0)
+            .fetch_one(&pool)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -87,21 +114,30 @@ pub async fn update_category(
         .bind(&tag)
         .bind(&name)
         .bind(id)
-        .execute(&db.0)
+        .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if the categories cannot be deleted.
 #[tauri::command]
-pub async fn delete_categories(db: State<'_, DbState>, ids: Vec<i64>) -> Result<(), String> {
+pub async fn delete_categories(app: tauri::AppHandle, ids: Vec<i64>) -> Result<(), String> {
     if ids.is_empty() {
         return Ok(());
     }
 
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     let misc_id: i64 = sqlx::query_scalar("SELECT id FROM categories WHERE tag = 'MISC'")
-        .fetch_one(&db.0)
+        .fetch_one(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -113,7 +149,7 @@ pub async fn delete_categories(db: State<'_, DbState>, ids: Vec<i64>) -> Result<
         sqlx::query("UPDATE works SET category_id = ? WHERE category_id = ?")
             .bind(misc_id)
             .bind(id)
-            .execute(&db.0)
+            .execute(&pool)
             .await
             .map_err(|e| e.to_string())?;
     }
@@ -127,7 +163,7 @@ pub async fn delete_categories(db: State<'_, DbState>, ids: Vec<i64>) -> Result<
 
     builder
         .build()
-        .execute(&db.0)
+        .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
 

@@ -19,25 +19,18 @@ extern "C" {
     pub async fn writeText(text: &str);
 }
 
+#[must_use]
 pub fn is_valid_date(s: &str) -> bool {
-    if s.len() != 10 {
-        return false;
-    }
-
     let parts: Vec<&str> = s.split('-').collect();
-    if parts.len() != 3 {
+    let [y, m, d] = parts.as_slice() else {
+        return false;
+    };
+
+    if y.len() != 4 || m.len() != 2 || d.len() != 2 {
         return false;
     }
 
-    if parts[0].len() != 4 || parts[1].len() != 2 || parts[2].len() != 2 {
-        return false;
-    }
-
-    let (Ok(y), Ok(m), Ok(d)) = (
-        parts[0].parse::<i32>(),
-        parts[1].parse::<u32>(),
-        parts[2].parse::<u32>(),
-    ) else {
+    let (Ok(y), Ok(m), Ok(d)) = (y.parse::<i32>(), m.parse::<u32>(), d.parse::<u32>()) else {
         return false;
     };
 
@@ -45,40 +38,47 @@ pub fn is_valid_date(s: &str) -> bool {
 }
 
 pub fn format_date(raw: &str) -> String {
-    let digits: String = raw.chars().filter(|c| c.is_ascii_digit()).collect();
-    let digits = &digits[..digits.len().min(8)];
+    let mut out = String::with_capacity(10);
 
-    match digits.len() {
-        0 => String::new(),
-        1..=4 => format!("{year}", year = digits),
-        5..=6 => format!("{year}-{month}", year = &digits[..4], month = &digits[4..]),
-        7..=8 => format!(
-            "{year}-{month}-{day}",
-            year = &digits[..4],
-            month = &digits[4..6],
-            day = &digits[6..]
-        ),
-        _ => unreachable!(),
+    for (i, c) in raw.chars().filter(char::is_ascii_digit).take(8).enumerate() {
+        if i == 4 || i == 6 {
+            out.push('-');
+        }
+        out.push(c);
     }
+
+    out
 }
 
+#[must_use]
 pub fn format_phone(raw: &str) -> String {
-    let digits: String = raw.chars().filter(|c| c.is_ascii_digit()).collect();
-    let digits = &digits[..digits.len().min(10)];
+    let mut out = String::with_capacity(14);
 
-    match digits.len() {
-        0 => String::new(),
-        1..=3 => format!("({})", digits),
-        4..=6 => format!("({}) {}", &digits[..3], &digits[3..]),
-        7..=10 => format!("({}) {}-{}", &digits[..3], &digits[3..6], &digits[6..]),
-        _ => unreachable!(),
+    for (i, c) in raw
+        .chars()
+        .filter(char::is_ascii_digit)
+        .take(10)
+        .enumerate()
+    {
+        match i {
+            0 => out.push('('),
+            3 => out.push_str(") "),
+            6 => out.push('-'),
+            _ => {}
+        }
+        out.push(c);
     }
+
+    out
 }
 
+/// # Errors
+///
+/// Returns an error if the fetch fails or the response is not a valid JSON array.
 pub async fn fetch_records<T: DeserializeOwned>(cmd: &str) -> Result<Vec<T>, String> {
     let result = invoke(cmd, JsValue::UNDEFINED)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
     from_value::<Vec<T>>(result).map_err(|e| e.to_string())
 }
 
@@ -97,8 +97,7 @@ pub fn apply_theme(theme: &str) {
                 .match_media("(prefers-color-scheme: dark)")
                 .ok()
                 .flatten()
-                .map(|m| m.matches())
-                .unwrap_or(false);
+                .is_some_and(|m| m.matches());
             if prefers_dark { "dark" } else { "light" }
         }
     };

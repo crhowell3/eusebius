@@ -11,15 +11,11 @@ use crate::on_sort;
 use crate::utils::{fetch_records, invoke};
 use models::{Category, Work};
 
-#[derive(Properties, PartialEq)]
+use super::TableMode;
+
+#[derive(Properties, PartialEq, Eq)]
 pub struct WorksTableProps {
     pub refresh_trigger: u32,
-}
-
-#[derive(Clone, PartialEq)]
-enum TableMode {
-    View,
-    Edit,
 }
 
 async fn delete_works(work_ids: Vec<i64>) -> Result<(), String> {
@@ -31,7 +27,7 @@ async fn delete_works(work_ids: Vec<i64>) -> Result<(), String> {
     let args = to_value(&Args { work_ids }).map_err(|e| e.to_string())?;
     let _ = invoke("delete_works", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -44,7 +40,7 @@ async fn update_work(work: Work) -> Result<(), String> {
     let args = to_value(&Args { work }).map_err(|e| e.to_string())?;
     let _ = invoke("update_work", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -125,7 +121,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
         });
     }
 
-    let sorted_works = sort_works(&*works, &*sort);
+    let sorted_works = sort_works(&works, &sort);
     let dirty = *works != *saved_works;
     let all_checked =
         !sorted_works.is_empty() && sorted_works.iter().all(|w| (*selected).contains(&w.id));
@@ -221,8 +217,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                             let name = (*categories)
                                 .iter()
                                 .find(|c| c.tag == value)
-                                .map(|c| c.name.clone())
-                                .unwrap_or_default();
+                                .map_or_default(|c| c.name.clone());
                             w.category_tag = value;
                             w.category_name = name;
                         }
@@ -254,20 +249,17 @@ pub fn works_table(props: &WorksTableProps) -> Html {
             if sorted_works.iter().all(|w| (*selected).contains(&w.id)) {
                 selected.set(HashSet::new());
             } else {
-                selected.set(sorted_works.iter().map(|w| w.id.clone()).collect());
+                selected.set(sorted_works.iter().map(|w| w.id).collect());
             }
         })
     };
 
     let on_delete = {
         let selected = selected.clone();
-        let works = works.clone();
-        let saved_works = saved_works.clone();
         let error = error.clone();
-        let mode = mode.clone();
 
         Callback::from(move |_: MouseEvent| {
-            let to_delete: Vec<i64> = (*selected).iter().cloned().collect();
+            let to_delete: Vec<i64> = (*selected).iter().copied().collect();
             let count = to_delete.len();
             let selected = selected.clone();
             let works = works.clone();
@@ -281,15 +273,16 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                     message: String,
                     title: String,
                 }
-                let args = to_value(&DialogArgs {
+                let Ok(args) = to_value(&DialogArgs {
                     message: format!(
                         "Delete {} selected work{}? This cannot be undone.",
                         count,
                         if count == 1 { "" } else { "s" }
                     ),
                     title: "Confirm Delete".to_string(),
-                })
-                .unwrap();
+                }) else {
+                    return;
+                };
 
                 let Ok(confirmed) = invoke("show_confirm_dialog", args).await else {
                     return;
@@ -299,7 +292,7 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                 }
 
                 match delete_works(to_delete).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         let remaining: Vec<Work> = (*works)
                             .iter()
                             .filter(|w| !(*selected).contains(&w.id))
@@ -426,8 +419,8 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                                         <span class="works-table-th-inner">
                                             { "Category" }
                                             { sort_icon(
-                                                (*sort).column == SortColumn::Category,
-                                                &(*sort).dir
+                                                sort.column == SortColumn::Category,
+                                                &sort.dir
                                             ) }
                                         </span>
                                     </th>
@@ -436,8 +429,8 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                                         <span class="works-table-th-inner">
                                             { "Description" }
                                             { sort_icon(
-                                                (*sort).column == SortColumn::Description,
-                                                &(*sort).dir
+                                                sort.column == SortColumn::Description,
+                                                &sort.dir
                                             ) }
                                         </span>
                                     </th>
@@ -453,9 +446,8 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                                     let on_change_category = {
                                         let on_field_change = on_field_change.clone();
                                         Callback::from(move |e: InputEvent| {
-                                            use wasm_bindgen::JsCast;
                                             use web_sys::HtmlSelectElement;
-                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlSelectElement>() {
+                                            if let Some(input) = e.target_dyn_into::<HtmlSelectElement>() {
                                                 on_field_change.emit((id, "category_tag", input.value()));
                                             }
                                         })
@@ -464,9 +456,8 @@ pub fn works_table(props: &WorksTableProps) -> Html {
                                     let on_change_description = {
                                         let on_field_change = on_field_change.clone();
                                         Callback::from(move |e: InputEvent| {
-                                            use wasm_bindgen::JsCast;
                                             use web_sys::HtmlInputElement;
-                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+                                            if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                                                 on_field_change.emit((id, "description", input.value()));
                                             }
                                         })

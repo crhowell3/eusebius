@@ -1,6 +1,7 @@
 pub mod backup;
 pub mod db;
 pub mod general;
+pub mod print;
 pub mod settings;
 
 pub use backup::*;
@@ -12,4 +13,5 @@ pub use db::{
     save_spouse,
 };
 pub use general::*;
+pub use print::*;
 pub use settings::*;

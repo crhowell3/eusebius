@@ -1,6 +1,6 @@
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement};
 use yew::prelude::*;
@@ -17,7 +17,7 @@ async fn add_work(work: Work) -> Result<(), String> {
     let args = to_value(&Args { work }).map_err(|e| e.to_string())?;
     let _ = invoke("add_work", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -42,7 +42,7 @@ pub fn works_form(props: &WorksFormProps) -> Html {
             spawn_local(async move {
                 match invoke("get_categories", JsValue::UNDEFINED)
                     .await
-                    .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))
+                    .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))
                     .and_then(|v| from_value::<Vec<Category>>(v).map_err(|e| e.to_string()))
                 {
                     Ok(data) => categories.set(data),
@@ -56,14 +56,19 @@ pub fn works_form(props: &WorksFormProps) -> Html {
     let handle_work_change = {
         let new_work = new_work.dispatcher();
         Callback::from(move |e: InputEvent| {
-            let target = e.target().unwrap();
-            let (name, value) = if let Ok(input) = target.clone().dyn_into::<HtmlInputElement>() {
-                (input.name(), input.value())
-            } else if let Ok(select) = target.clone().dyn_into::<HtmlSelectElement>() {
-                (select.name(), select.value())
-            } else if let Ok(textarea) = target.dyn_into::<HtmlTextAreaElement>() {
-                (textarea.name(), textarea.value())
-            } else {
+            let field = e
+                .target_dyn_into::<HtmlInputElement>()
+                .map(|el| (el.name(), el.value()))
+                .or_else(|| {
+                    e.target_dyn_into::<HtmlSelectElement>()
+                        .map(|el| (el.name(), el.value()))
+                })
+                .or_else(|| {
+                    e.target_dyn_into::<HtmlTextAreaElement>()
+                        .map(|el| (el.name(), el.value()))
+                });
+
+            let Some((name, value)) = field else {
                 return;
             };
             new_work.dispatch(GenericAction::SetField { name, value });
@@ -81,7 +86,7 @@ pub fn works_form(props: &WorksFormProps) -> Html {
             let on_work_added = on_work_added.clone();
             spawn_local(async move {
                 match add_work(work).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         new_work.dispatch(GenericAction::Reset);
                         form_error.set(None);
                         on_work_added.emit(());

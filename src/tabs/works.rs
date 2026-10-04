@@ -9,22 +9,22 @@ pub fn work_tab_body() -> Html {
 
     let on_work_added = {
         let refresh_trigger = refresh_trigger.clone();
-        Callback::from(move |_: ()| {
-            refresh_trigger.set(*refresh_trigger + 1);
+        Callback::from(move |(): ()| {
+            refresh_trigger.set(refresh_trigger.wrapping_add(1));
         })
     };
 
     let on_category_added = {
         let refresh_trigger = refresh_trigger.clone();
-        Callback::from(move |_: ()| {
-            refresh_trigger.set(*refresh_trigger + 1);
+        Callback::from(move |(): ()| {
+            refresh_trigger.set(refresh_trigger.wrapping_add(1));
         })
     };
 
     let on_category_delete = {
         let refresh_trigger = refresh_trigger.clone();
-        Callback::from(move |_: ()| {
-            refresh_trigger.set(*refresh_trigger + 1);
+        Callback::from(move |(): ()| {
+            refresh_trigger.set(refresh_trigger.wrapping_add(1));
         })
     };
 

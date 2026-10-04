@@ -1,16 +1,24 @@
 pub mod cmd;
 
-use crate::cmd::{DbState, backup, db, general, settings};
+use crate::cmd::{DbState, backup, db, general, print, settings};
 
 use tauri::Manager;
 
+/// Builds and runs the Tauri application.
+///
+/// # Errors
+///
+/// Returns an error if the Tauri application fails to start or run.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub fn run() -> tauri::Result<()> {
     tauri::Builder::default()
         .setup(|app| {
             let app_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&app_dir)?;
-            let db_path = format!("sqlite:{}/eusebius.db", app_dir.display());
+
+            let options = sqlx::sqlite::SqliteConnectOptions::new()
+                .filename(app_dir.join("eusebius.db"))
+                .create_if_missing(true);
 
             let pool = tauri::async_runtime::block_on(async {
                 let pool = sqlx::sqlite::SqlitePoolOptions::new()
@@ -22,22 +30,13 @@ pub fn run() {
                             Ok(())
                         })
                     })
-                    .connect_with(
-                        db_path
-                            .parse::<sqlx::sqlite::SqliteConnectOptions>()
-                            .unwrap()
-                            .create_if_missing(true),
-                    )
-                    .await
-                    .expect("failed to connect to database");
+                    .connect_with(options)
+                    .await?;
 
-                sqlx::migrate!("./migrations")
-                    .run(&pool)
-                    .await
-                    .expect("failed to run database migrations");
+                sqlx::migrate!("./migrations").run(&pool).await?;
 
-                pool
-            });
+                Ok::<_, Box<dyn std::error::Error>>(pool)
+            })?;
 
             app.manage(DbState(pool));
             app.manage(cmd::load_initial_settings(app.handle()));
@@ -92,6 +91,8 @@ pub fn run() {
             backup::list_backups,
             backup::create_backup,
             backup::delete_backup,
+            // Print
+            print::print_birthdays,
             // App / misc
             general::get_app_data_dir,
             general::exit_app,
@@ -99,5 +100,4 @@ pub fn run() {
             db::list_tables,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
 }
