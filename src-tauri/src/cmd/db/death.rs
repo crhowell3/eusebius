@@ -1,5 +1,5 @@
 use sqlx::QueryBuilder;
-use tauri::State;
+use tauri::Manager;
 
 use models::Death;
 
@@ -9,9 +9,15 @@ use super::DbState;
 ///
 /// Returns an error if the deaths cannot be retrieved.
 #[tauri::command]
-pub async fn get_deaths(db: State<'_, DbState>) -> Result<Vec<Death>, String> {
+pub async fn get_deaths(app: tauri::AppHandle) -> Result<Vec<Death>, String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     sqlx::query_as::<_, Death>("SELECT * FROM deaths")
-        .fetch_all(&db.0)
+        .fetch_all(&pool)
         .await
         .map_err(|e| e.to_string())
 }
@@ -20,7 +26,13 @@ pub async fn get_deaths(db: State<'_, DbState>) -> Result<Vec<Death>, String> {
 ///
 /// Returns an error if the death cannot be added.
 #[tauri::command]
-pub async fn add_death(db: State<'_, DbState>, death: Death) -> Result<(), String> {
+pub async fn add_death(app: tauri::AppHandle, death: Death) -> Result<(), String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     sqlx::query(
         "INSERT INTO deaths (first_name, last_name, date_of_death)
         VALUES (?, ?, ?)",
@@ -28,7 +40,7 @@ pub async fn add_death(db: State<'_, DbState>, death: Death) -> Result<(), Strin
     .bind(&death.first_name)
     .bind(&death.last_name)
     .bind(&death.date_of_death)
-    .execute(&db.0)
+    .execute(&pool)
     .await
     .map_err(|e| e.to_string())?;
 
@@ -39,13 +51,19 @@ pub async fn add_death(db: State<'_, DbState>, death: Death) -> Result<(), Strin
 ///
 /// Returns an error if the death cannot be updated.
 #[tauri::command]
-pub async fn update_death(db: State<'_, DbState>, death: Death) -> Result<(), String> {
+pub async fn update_death(app: tauri::AppHandle, death: Death) -> Result<(), String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     sqlx::query("UPDATE deaths SET first_name = ?, last_name = ?, date_of_death = ? WHERE id = ?")
         .bind(&death.first_name)
         .bind(&death.last_name)
         .bind(&death.date_of_death)
-        .bind(&death.id)
-        .execute(&db.0)
+        .bind(death.id)
+        .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -56,10 +74,17 @@ pub async fn update_death(db: State<'_, DbState>, death: Death) -> Result<(), St
 ///
 /// Returns an error if the deaths cannot be deleted.
 #[tauri::command]
-pub async fn delete_deaths(db: State<'_, DbState>, death_ids: Vec<i64>) -> Result<(), String> {
+pub async fn delete_deaths(app: tauri::AppHandle, death_ids: Vec<i64>) -> Result<(), String> {
     if death_ids.is_empty() {
         return Ok(());
     }
+
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     let mut builder = QueryBuilder::new("DELETE FROM deaths WHERE id IN (");
     let mut separated = builder.separated(", ");
     for id in &death_ids {
@@ -68,7 +93,7 @@ pub async fn delete_deaths(db: State<'_, DbState>, death_ids: Vec<i64>) -> Resul
     separated.push_unseparated(")");
     builder
         .build()
-        .execute(&db.0)
+        .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
     Ok(())

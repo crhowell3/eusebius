@@ -1,4 +1,4 @@
-use tauri::State;
+use tauri::Manager;
 
 use models::{MemberWorkView, Person};
 
@@ -9,9 +9,15 @@ use super::DbState;
 /// Returns an error if the persons cannot be retrieved.
 #[tauri::command]
 pub async fn get_persons_for_family(
-    db: State<'_, DbState>,
+    app: tauri::AppHandle,
     family_id: String,
 ) -> Result<Vec<Person>, String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     sqlx::query_as::<_, Person>(
         "SELECT id, family_id, role, first_name, last_name
         FROM persons
@@ -23,7 +29,7 @@ pub async fn get_persons_for_family(
         END",
     )
     .bind(&family_id)
-    .fetch_all(&db.0)
+    .fetch_all(&pool)
     .await
     .map_err(|e| e.to_string())
 }
@@ -33,9 +39,15 @@ pub async fn get_persons_for_family(
 /// Returns an error if the works cannot be retrieved.
 #[tauri::command]
 pub async fn get_works_for_person(
-    db: State<'_, DbState>,
+    app: tauri::AppHandle,
     person_id: i64,
 ) -> Result<Vec<MemberWorkView>, String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     sqlx::query_as::<_, MemberWorkView>(
         "SELECT mw.id, mw.person_id,
                 p.first_name, p.last_name, p.role, p.family_id,
@@ -49,7 +61,7 @@ pub async fn get_works_for_person(
          ORDER BY c.name, w.category_id",
     )
     .bind(person_id)
-    .fetch_all(&db.0)
+    .fetch_all(&pool)
     .await
     .map_err(|e| e.to_string())
 }
@@ -59,9 +71,15 @@ pub async fn get_works_for_person(
 /// Returns an error if the persons cannot be retrieved.
 #[tauri::command]
 pub async fn get_persons_for_work(
-    db: State<'_, DbState>,
+    app: tauri::AppHandle,
     work_id: i64,
 ) -> Result<Vec<MemberWorkView>, String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     sqlx::query_as::<_, MemberWorkView>(
         "SELECT mw.id, mw.person_id,
                 p.first_name, p.last_name, p.role, p.family_id,
@@ -75,7 +93,7 @@ pub async fn get_persons_for_work(
          ORDER BY p.last_name, p.first_name",
     )
     .bind(work_id)
-    .fetch_all(&db.0)
+    .fetch_all(&pool)
     .await
     .map_err(|e| e.to_string())
 }
@@ -85,13 +103,19 @@ pub async fn get_persons_for_work(
 /// Returns an error if the works cannot be retrieved.
 #[tauri::command]
 pub async fn set_works_for_person(
-    db: State<'_, DbState>,
+    app: tauri::AppHandle,
     person_id: i64,
     work_ids: Vec<i64>,
 ) -> Result<(), String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     sqlx::query("DELETE FROM member_works WHERE person_id = ?")
         .bind(person_id)
-        .execute(&db.0)
+        .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -99,7 +123,7 @@ pub async fn set_works_for_person(
         sqlx::query("INSERT OR IGNORE INTO member_works (person_id, work_id) VALUES (?, ?)")
             .bind(person_id)
             .bind(work_id)
-            .execute(&db.0)
+            .execute(&pool)
             .await
             .map_err(|e| e.to_string())?;
     }

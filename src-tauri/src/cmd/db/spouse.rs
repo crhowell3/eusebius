@@ -1,4 +1,4 @@
-use tauri::State;
+use tauri::Manager;
 
 use models::Spouse;
 
@@ -9,9 +9,15 @@ use super::DbState;
 /// Returns an error if the spouse cannot be retrieved.
 #[tauri::command]
 pub async fn get_spouse(
-    db: State<'_, DbState>,
+    app: tauri::AppHandle,
     family_id: String,
 ) -> Result<Option<Spouse>, String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     sqlx::query_as::<_, Spouse>(
         "SELECT family_id, first_name, last_name, date_of_birth,
                 is_member, is_active, cell_phone, work_phone,
@@ -19,7 +25,7 @@ pub async fn get_spouse(
          FROM spouses WHERE family_id = ?",
     )
     .bind(&family_id)
-    .fetch_optional(&db.0)
+    .fetch_optional(&pool)
     .await
     .map_err(|e| e.to_string())
 }
@@ -28,7 +34,13 @@ pub async fn get_spouse(
 ///
 /// Returns an error if the spouse cannot be saved.
 #[tauri::command]
-pub async fn save_spouse(db: State<'_, DbState>, spouse: Spouse) -> Result<(), String> {
+pub async fn save_spouse(app: tauri::AppHandle, spouse: Spouse) -> Result<(), String> {
+    let pool = app
+        .try_state::<DbState>()
+        .ok_or("database is not initialized")?
+        .0
+        .clone();
+
     sqlx::query(
         "INSERT INTO spouses
             (family_id, first_name, last_name, date_of_birth,
@@ -56,7 +68,7 @@ pub async fn save_spouse(db: State<'_, DbState>, spouse: Spouse) -> Result<(), S
     .bind(&spouse.work_phone)
     .bind(&spouse.email_address)
     .bind(spouse.on_bulletin_email_list)
-    .execute(&db.0)
+    .execute(&pool)
     .await
     .map_err(|e| e.to_string())?;
 
@@ -70,7 +82,7 @@ pub async fn save_spouse(db: State<'_, DbState>, spouse: Spouse) -> Result<(), S
     .bind(&spouse.family_id)
     .bind(&spouse.first_name)
     .bind(&spouse.last_name)
-    .execute(&db.0)
+    .execute(&pool)
     .await
     .map_err(|e| e.to_string())?;
 

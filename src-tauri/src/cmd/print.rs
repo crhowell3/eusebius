@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use serde::Deserialize;
 use tauri::Manager;
 use tauri_plugin_opener::OpenerExt;
@@ -36,6 +38,7 @@ pub async fn print_birthdays(
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 fn generate_birthday_sheet(month: &str, records: &[PrintBirthdays]) -> String {
     let mut body = String::new();
 
@@ -44,14 +47,15 @@ fn generate_birthday_sheet(month: &str, records: &[PrintBirthdays]) -> String {
         let last_name = &record.last_name;
         let day = &record.day;
 
-        body.push_str(&format!(
-            r#"
+        let _ = write!(
+            body,
+            r"
                 <li>
                 <span>{day}</span>
                 <span>{first_name} {last_name}</span>
                 </li>
-           "#,
-        ));
+           "
+        );
     }
 
     format!(
@@ -229,10 +233,9 @@ fn generate_birthday_sheet(month: &str, records: &[PrintBirthdays]) -> String {
                 <span class="print-title">{month} Birthdays</span>
                 <span class="print-meta">Printed: <script>document.write(new Date().toLocaleDateString())</script></span>
             </div>
-            {}
+            {body}
         </div>
     </body>
     </html>"#,
-        body
     )
 }
