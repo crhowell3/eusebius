@@ -1,19 +1,20 @@
 use yew::prelude::*;
 
-#[derive(Default, Clone, PartialEq)]
+#[derive(Default, Clone, PartialEq, Eq)]
 pub enum SortDir {
     #[default]
     Asc,
     Desc,
 }
 
-#[derive(Default, Clone, PartialEq)]
+#[derive(Default, Clone, PartialEq, Eq)]
 pub struct SortState<T: Default> {
     pub column: T,
     pub dir: SortDir,
 }
 
 impl<T: Default + Clone + PartialEq> SortState<T> {
+    #[must_use]
     pub fn toggle(&self, col: T) -> Self {
         if self.column == col {
             Self {

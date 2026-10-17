@@ -1,6 +1,5 @@
 use serde::Serialize;
 use serde_wasm_bindgen::to_value;
-use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement};
 use yew::prelude::*;
@@ -17,7 +16,7 @@ async fn add_family(family: Family) -> Result<(), String> {
     let args = to_value(&AddFamilyArgs { family }).map_err(|e| e.to_string())?;
     let _ = invoke("add_family", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -98,7 +97,7 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
             let on_family_added = on_family_added.clone();
             spawn_local(async move {
                 match add_family(family).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         new_family.dispatch(GenericAction::Reset);
                         form_error.set(None);
                         on_family_added.emit(());
@@ -109,7 +108,7 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
         })
     };
 
-    let is_valid = is_valid_family(&*new_family);
+    let is_valid = is_valid_family(&new_family);
 
     html! {
         <div>
@@ -187,8 +186,9 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
                             onchange={{
                                 let new_family = new_family.dispatcher();
                                 Callback::from(move |e: Event| {
-                                    let input = e.target().unwrap()
-                                        .dyn_into::<HtmlInputElement>().unwrap();
+                                    let Some(input) = e.target_dyn_into::<HtmlInputElement>() else {
+                                        return;
+                                    };
                                     new_family.dispatch(GenericAction::SetBool {
                                         name: "is_member".to_string(),
                                         value: input.checked(),
@@ -206,8 +206,9 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
                             onchange={{
                                 let new_family = new_family.dispatcher();
                                 Callback::from(move |e: Event| {
-                                    let input = e.target().unwrap()
-                                        .dyn_into::<HtmlInputElement>().unwrap();
+                                    let Some(input) = e.target_dyn_into::<HtmlInputElement>() else {
+                                        return;
+                                    };
                                     new_family.dispatch(GenericAction::SetBool {
                                         name: "is_active".to_string(),
                                         value: input.checked(),
@@ -225,8 +226,9 @@ pub fn families_form(props: &FamiliesFormProps) -> Html {
                             onchange={{
                                 let new_family = new_family.dispatcher();
                                 Callback::from(move |e: Event| {
-                                    let input = e.target().unwrap()
-                                        .dyn_into::<HtmlInputElement>().unwrap();
+                                    let Some(input) = e.target_dyn_into::<HtmlInputElement>() else {
+                                        return;
+                                    };
                                     new_family.dispatch(GenericAction::SetBool {
                                         name: "on_bulletin_email_list".to_string(),
                                         value: input.checked(),

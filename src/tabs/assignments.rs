@@ -26,8 +26,13 @@ async fn fetch_works() -> Result<Vec<Work>, String> {
 async fn fetch_persons_for_family(family_id: &str) -> Result<Vec<Person>, String> {
     #[derive(Serialize)]
     #[serde(rename_all = "camelCase")]
-    struct Args { family_id: String }
-    let args = to_value(&Args { family_id: family_id.to_string() }).map_err(|e| e.to_string())?;
+    struct Args {
+        family_id: String,
+    }
+    let args = to_value(&Args {
+        family_id: family_id.to_string(),
+    })
+    .map_err(|e| e.to_string())?;
     let result = invoke("get_persons_for_family", args)
         .await
         .map_err(|e| e.as_string().unwrap_or_default())?;
@@ -37,7 +42,9 @@ async fn fetch_persons_for_family(family_id: &str) -> Result<Vec<Person>, String
 async fn fetch_works_for_person(person_id: i64) -> Result<Vec<MemberWorkView>, String> {
     #[derive(Serialize)]
     #[serde(rename_all = "camelCase")]
-    struct Args { person_id: i64 }
+    struct Args {
+        person_id: i64,
+    }
     let args = to_value(&Args { person_id }).map_err(|e| e.to_string())?;
     let result = invoke("get_works_for_person", args)
         .await
@@ -48,8 +55,15 @@ async fn fetch_works_for_person(person_id: i64) -> Result<Vec<MemberWorkView>, S
 async fn set_works_for_person(person_id: i64, work_ids: Vec<i64>) -> Result<(), String> {
     #[derive(Serialize)]
     #[serde(rename_all = "camelCase")]
-    struct Args { person_id: i64, work_ids: Vec<i64> }
-    let args = to_value(&Args { person_id, work_ids }).map_err(|e| e.to_string())?;
+    struct Args {
+        person_id: i64,
+        work_ids: Vec<i64>,
+    }
+    let args = to_value(&Args {
+        person_id,
+        work_ids,
+    })
+    .map_err(|e| e.to_string())?;
     let _ = invoke("set_works_for_person", args)
         .await
         .map_err(|e| e.as_string().unwrap_or_default())?;
@@ -58,33 +72,33 @@ async fn set_works_for_person(person_id: i64, work_ids: Vec<i64>) -> Result<(), 
 
 #[function_component(AssignmentsTab)]
 pub fn assignments_tab() -> Html {
-    let families         = use_state(Vec::<Family>::new);
-    let all_works        = use_state(Vec::<Work>::new);
-    let persons          = use_state(Vec::<Person>::new);
-    let selected_family  = use_state(|| None::<String>);
-    let selected_person  = use_state(|| None::<i64>);
-    let assigned_ids     = use_state(HashSet::<i64>::new); // current saved assignments
-    let pending_ids      = use_state(HashSet::<i64>::new); // checkbox state (unsaved)
-    let loading_persons  = use_state(|| false);
-    let loading_works    = use_state(|| false);
-    let saving           = use_state(|| false);
-    let error            = use_state(|| None::<String>);
+    let families = use_state(Vec::<Family>::new);
+    let all_works = use_state(Vec::<Work>::new);
+    let persons = use_state(Vec::<Person>::new);
+    let selected_family = use_state(|| None::<String>);
+    let selected_person = use_state(|| None::<i64>);
+    let assigned_ids = use_state(HashSet::<i64>::new); // current saved assignments
+    let pending_ids = use_state(HashSet::<i64>::new); // checkbox state (unsaved)
+    let loading_persons = use_state(|| false);
+    let loading_works = use_state(|| false);
+    let saving = use_state(|| false);
+    let error = use_state(|| None::<String>);
 
     let dirty = *pending_ids != *assigned_ids;
 
     {
-        let families  = families.clone();
+        let families = families.clone();
         let all_works = all_works.clone();
-        let error     = error.clone();
-        use_effect_with((), move |_| {
+        let error = error.clone();
+        use_effect_with((), move |()| {
             spawn_local(async move {
                 match fetch_families().await {
                     Ok(data) => families.set(data),
-                    Err(e)   => error.set(Some(e)),
+                    Err(e) => error.set(Some(e)),
                 }
                 match fetch_works().await {
                     Ok(data) => all_works.set(data),
-                    Err(e)   => error.set(Some(e)),
+                    Err(e) => error.set(Some(e)),
                 }
             });
             || ()
@@ -92,13 +106,13 @@ pub fn assignments_tab() -> Html {
     }
 
     {
-        let persons         = persons.clone();
+        let persons = persons.clone();
         let selected_person = selected_person.clone();
-        let assigned_ids    = assigned_ids.clone();
-        let pending_ids     = pending_ids.clone();
+        let assigned_ids = assigned_ids.clone();
+        let pending_ids = pending_ids.clone();
         let loading_persons = loading_persons.clone();
-        let error           = error.clone();
-        let family_id       = (*selected_family).clone();
+        let error = error.clone();
+        let family_id = (*selected_family).clone();
 
         use_effect_with(family_id, move |family_id| {
             if let Some(fid) = family_id.clone() {
@@ -108,8 +122,11 @@ pub fn assignments_tab() -> Html {
                 pending_ids.set(HashSet::new());
                 spawn_local(async move {
                     match fetch_persons_for_family(&fid).await {
-                        Ok(data) => { persons.set(data); error.set(None); }
-                        Err(e)   => error.set(Some(e)),
+                        Ok(data) => {
+                            persons.set(data);
+                            error.set(None);
+                        }
+                        Err(e) => error.set(Some(e)),
                     }
                     loading_persons.set(false);
                 });
@@ -124,11 +141,11 @@ pub fn assignments_tab() -> Html {
     }
 
     {
-        let assigned_ids   = assigned_ids.clone();
-        let pending_ids    = pending_ids.clone();
-        let loading_works  = loading_works.clone();
-        let error          = error.clone();
-        let person_id      = (*selected_person).clone();
+        let assigned_ids = assigned_ids.clone();
+        let pending_ids = pending_ids.clone();
+        let loading_works = loading_works.clone();
+        let error = error.clone();
+        let person_id = *selected_person;
 
         use_effect_with(person_id, move |person_id| {
             if let Some(pid) = *person_id {
@@ -171,28 +188,32 @@ pub fn assignments_tab() -> Html {
         let pending_ids = pending_ids.clone();
         Callback::from(move |work_id: i64| {
             let mut next = (*pending_ids).clone();
-            if next.contains(&work_id) { next.remove(&work_id); } else { next.insert(work_id); }
+            if next.contains(&work_id) {
+                next.remove(&work_id);
+            } else {
+                next.insert(work_id);
+            }
             pending_ids.set(next);
         })
     };
 
     let on_save = {
-        let pending_ids     = pending_ids.clone();
-        let assigned_ids    = assigned_ids.clone();
+        let pending_ids = pending_ids.clone();
+        let assigned_ids = assigned_ids.clone();
         let selected_person = selected_person.clone();
-        let saving          = saving.clone();
-        let error           = error.clone();
+        let saving = saving.clone();
+        let error = error.clone();
         Callback::from(move |_: MouseEvent| {
             let Some(pid) = *selected_person else { return };
-            let work_ids = (*pending_ids).iter().cloned().collect::<Vec<_>>();
-            let pending_ids  = pending_ids.clone();
+            let work_ids = (*pending_ids).iter().copied().collect::<Vec<_>>();
+            let pending_ids = pending_ids.clone();
             let assigned_ids = assigned_ids.clone();
-            let saving       = saving.clone();
-            let error        = error.clone();
+            let saving = saving.clone();
+            let error = error.clone();
             saving.set(true);
             spawn_local(async move {
                 match set_works_for_person(pid, work_ids).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         assigned_ids.set((*pending_ids).clone());
                         error.set(None);
                     }
@@ -204,16 +225,17 @@ pub fn assignments_tab() -> Html {
     };
 
     let on_discard = {
-        let pending_ids  = pending_ids.clone();
-        let assigned_ids = assigned_ids.clone();
+        let pending_ids = pending_ids.clone();
+        let assigned_ids = assigned_ids;
         Callback::from(move |_: MouseEvent| {
             pending_ids.set((*assigned_ids).clone());
         })
     };
 
     let mut grouped: Vec<(String, Vec<&Work>)> = Vec::new();
-    for work in (*all_works).iter() {
-        if let Some((_, works)) = grouped.iter_mut()
+    for work in &(*all_works) {
+        if let Some((_, works)) = grouped
+            .iter_mut()
             .find(|(name, _)| name == &work.category_name)
         {
             works.push(work);

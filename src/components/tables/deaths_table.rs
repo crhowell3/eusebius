@@ -21,7 +21,7 @@ async fn delete_deaths(death_ids: Vec<i64>) -> Result<(), String> {
     let args = to_value(&Args { death_ids }).map_err(|e| e.to_string())?;
     let _ = invoke("delete_deaths", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -35,7 +35,7 @@ async fn update_death(death: Death) -> Result<(), String> {
     let args = to_value(&Args { death }).map_err(|e| e.to_string())?;
     let _ = invoke("update_death", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -64,7 +64,7 @@ fn sort_deaths(deaths: &[Death], sort: &SortState<SortColumn>) -> Vec<Death> {
     sorted
 }
 
-#[derive(Properties, PartialEq)]
+#[derive(Properties, PartialEq, Eq)]
 pub struct DeathsTableProps {
     pub refresh_trigger: u32,
 }
@@ -105,7 +105,7 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
         });
     }
 
-    let sorted_deaths = sort_deaths(&*deaths, &*sort);
+    let sorted_deaths = sort_deaths(&deaths, &sort);
 
     let dirty = *deaths != *saved_deaths;
     let some_checked = !(*selected).is_empty();
@@ -157,7 +157,7 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
             if sorted_deaths.iter().all(|w| (*selected).contains(&w.id)) {
                 selected.set(HashSet::new());
             } else {
-                selected.set(sorted_deaths.iter().map(|w| w.id.clone()).collect());
+                selected.set(sorted_deaths.iter().map(|w| w.id).collect());
             }
         })
     };
@@ -170,7 +170,7 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
         let mode = mode.clone();
 
         Callback::from(move |_: MouseEvent| {
-            let to_delete: Vec<i64> = (*selected).iter().cloned().collect();
+            let to_delete: Vec<i64> = (*selected).iter().copied().collect();
             let count = to_delete.len();
             let selected = selected.clone();
             let deaths = deaths.clone();
@@ -185,14 +185,15 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                     title: String,
                 }
 
-                let args = to_value(&DialogArgs {
+                let Ok(args) = to_value(&DialogArgs {
                     message: format!(
                         "Delete {count} selected death record{}? This cannot be undone.",
                         if count == 1 { "" } else { "s" }
                     ),
                     title: "Confirm Delete".to_string(),
-                })
-                .unwrap();
+                }) else {
+                    return;
+                };
 
                 let Ok(confirmed) = invoke("show_confirm_dialog", args).await else {
                     return;
@@ -203,7 +204,7 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                 }
 
                 match delete_deaths(to_delete).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         let remaining: Vec<Death> = (*deaths)
                             .iter()
                             .filter(|w| !(*selected).contains(&w.id))
@@ -223,10 +224,8 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
 
     let on_save_edits = {
         let deaths = deaths.clone();
-        let saved_deaths = saved_deaths.clone();
         let error = error.clone();
         let saving = saving.clone();
-        let mode = mode.clone();
 
         Callback::from(move |_: MouseEvent| {
             let snapshot = (*saved_deaths).clone();
@@ -249,7 +248,6 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                 return;
             }
 
-            let deaths = deaths.clone();
             let saved_deaths = saved_deaths.clone();
             let error = error.clone();
             let saving = saving.clone();
@@ -279,8 +277,6 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
     };
 
     let on_field_change = {
-        let deaths = deaths.clone();
-
         Callback::from(
             move |(death_id, field, value): (i64, &'static str, String)| {
                 deaths.set({
@@ -290,9 +286,7 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                             "first_name" => d.first_name = value,
                             "last_name" => d.last_name = value,
                             "date_of_death" => d.date_of_death = value,
-                            _ => {
-                                unreachable!()
-                            }
+                            &_ => {}
                         }
                     }
                     next
@@ -414,8 +408,8 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "First Name" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::FirstName,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::FirstName,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -424,8 +418,8 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "Last Name" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::LastName,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::LastName,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -434,8 +428,8 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "Date of Death" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::DateOfDeath,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::DateOfDeath,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -450,15 +444,12 @@ pub fn deaths_table(props: &DeathsTableProps) -> Html {
 
                                 let make_field_callback = {
                                     let on_field_change = on_field_change.clone();
-                                    let death_id = death_id.clone();
                                     move |field_name: &'static str| {
                                         let on_field_change = on_field_change.clone();
-                                        let death_id = death_id.clone();
                                         Callback::from(move |e: InputEvent| {
-                                            use wasm_bindgen::JsCast;
                                             use web_sys::HtmlInputElement;
-                                            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
-                                                on_field_change.emit((death_id.clone(), field_name, input.value()));
+                                            if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
+                                                on_field_change.emit((death_id, field_name, input.value()));
                                             }
                                         })
                                     }

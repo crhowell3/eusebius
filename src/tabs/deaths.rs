@@ -9,8 +9,8 @@ pub fn death_tab_body() -> Html {
 
     let on_death_added = {
         let refresh_trigger = refresh_trigger.clone();
-        Callback::from(move |_: ()| {
-            refresh_trigger.set(*refresh_trigger + 1);
+        Callback::from(move |(): ()| {
+            refresh_trigger.set(refresh_trigger.wrapping_add(1));
         })
     };
 

@@ -1,6 +1,6 @@
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
@@ -11,7 +11,7 @@ use models::AppSettings;
 async fn fetch_settings() -> Result<AppSettings, String> {
     let result = invoke("load_settings", JsValue::UNDEFINED)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
     from_value::<AppSettings>(result).map_err(|e| e.to_string())
 }
 
@@ -23,7 +23,7 @@ async fn persist_settings(settings: AppSettings) -> Result<(), String> {
     let args = to_value(&Args { settings }).map_err(|e| e.to_string())?;
     let _ = invoke("save_settings", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -31,7 +31,7 @@ async fn persist_settings(settings: AppSettings) -> Result<(), String> {
 async fn do_reset() -> Result<AppSettings, String> {
     let result = invoke("reset_settings", JsValue::UNDEFINED)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
     from_value::<AppSettings>(result).map_err(|e| e.to_string())
 }
 
@@ -49,7 +49,7 @@ pub fn settings_tab_body() -> Html {
         let settings = settings.clone();
         let loading = loading.clone();
         let error = error.clone();
-        use_effect_with((), move |_| {
+        use_effect_with((), move |()| {
             spawn_local(async move {
                 match fetch_settings().await {
                     Ok(s) => settings.set(s),
@@ -78,7 +78,7 @@ pub fn settings_tab_body() -> Html {
             success.set(None);
             spawn_local(async move {
                 match persist_settings(payload).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         dirty.set(false);
                         success.set(Some("Settings saved.".to_string()));
                     }
@@ -120,7 +120,7 @@ pub fn settings_tab_body() -> Html {
         let settings = settings.clone();
         let dirty = dirty.clone();
         Callback::from(move |e: Event| {
-            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+            if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                 let mut next = (*settings).clone();
                 f(&mut next, input.value());
                 settings.set(next);
@@ -133,13 +133,13 @@ pub fn settings_tab_body() -> Html {
         let settings = settings.clone();
         let dirty = dirty.clone();
         Callback::from(move |e: Event| {
-            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
-                if let Ok(val) = input.value().parse::<u32>() {
-                    let mut next = (*settings).clone();
-                    f(&mut next, val);
-                    settings.set(next);
-                    dirty.set(true);
-                }
+            if let Some(input) = e.target_dyn_into::<HtmlInputElement>()
+                && let Ok(val) = input.value().parse::<u32>()
+            {
+                let mut next = (*settings).clone();
+                f(&mut next, val);
+                settings.set(next);
+                dirty.set(true);
             }
         })
     };
@@ -148,7 +148,7 @@ pub fn settings_tab_body() -> Html {
         let settings = settings.clone();
         let dirty = dirty.clone();
         Callback::from(move |e: Event| {
-            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+            if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                 let mut next = (*settings).clone();
                 f(&mut next, input.checked());
                 settings.set(next);
@@ -278,7 +278,7 @@ pub fn settings_tab_body() -> Html {
                                                 class={ if is_active { "theme-option theme-option--active" } else { "theme-option" } }
                                                 onclick={ Callback::from(move |_: MouseEvent| {
                                                     let mut next = (*settings).clone();
-                                                    next.theme = val_str.clone();
+                                                    next.theme.clone_from(&val_str);
                                                     settings.set(next);
                                                     dirty.set(true);
                                                     apply_theme(&val_str);

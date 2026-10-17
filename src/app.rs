@@ -4,8 +4,8 @@ use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use crate::tabs::{
-    About, AssignmentsTab, BackupsTabBody, BaptismsTabBody, DeathTabBody, MainMenu, MemberTabBody, SettingsTabBody,
-    ViewTables, WorkTabBody,
+    About, AssignmentsTab, BackupsTabBody, BaptismsTabBody, DeathTabBody, MainMenu, MemberTabBody,
+    SettingsTabBody, ViewTables, WorkTabBody,
 };
 
 use crate::utils::{apply_theme, invoke};
@@ -14,7 +14,7 @@ use models::AppSettings;
 
 const COMMIT: &str = env!("GIT_COMMIT_HASH");
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Tab {
     pub id: String,
     pub label: String,
@@ -60,12 +60,11 @@ pub fn app() -> Html {
     });
     let active_tab = use_state(|| "main".to_string());
 
-    use_effect_with((), move |_| {
-        let error = error.clone();
+    use_effect_with((), move |()| {
         spawn_local(async move {
             match invoke("load_settings", JsValue::UNDEFINED)
                 .await
-                .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))
+                .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))
                 .and_then(|v| from_value::<AppSettings>(v).map_err(|e| e.to_string()))
             {
                 Ok(settings) => apply_theme(&settings.theme),
@@ -96,10 +95,10 @@ pub fn app() -> Html {
         let active_tab = active_tab.clone();
         Callback::from(move |id: String| {
             let remaining: Vec<Tab> = (*tabs).iter().filter(|t| t.id != id).cloned().collect();
-            if *active_tab == id {
-                if let Some(last) = remaining.last() {
-                    active_tab.set(last.id.clone());
-                }
+            if *active_tab == id
+                && let Some(last) = remaining.last()
+            {
+                active_tab.set(last.id.clone());
             }
             tabs.set(remaining);
         })
@@ -130,14 +129,16 @@ pub fn app() -> Html {
                         Callback::from(move |_: MouseEvent| switch_tab.emit(id.clone()))
                     };
 
-                    let close_btn = if tab.id != "main" {
+                    let close_btn = if tab.id == "main" {
+                        html! {}
+                    } else {
                         let id = tab.id.clone();
                         let close_tab = close_tab.clone();
                         let label = tab.label.clone();
                         html! {
                             <span
                                 class="tab-close"
-                                aria-label={ format!("Close {}", label) }
+                                aria-label={ format!("Close {label}") }
                                 onclick={ Callback::from(move |e: MouseEvent| {
                                     e.stop_propagation();
                                     close_tab.emit(id.clone());
@@ -146,8 +147,6 @@ pub fn app() -> Html {
                                 { "×" }
                             </span>
                         }
-                    } else {
-                        html! {}
                     };
 
                     html! {

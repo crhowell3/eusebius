@@ -1,6 +1,11 @@
+#![allow(clippy::needless_pass_by_value)]
+
 use tauri::Manager;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 
+/// # Errors
+///
+/// Returns an error if the confirm dialog fails to open.
 #[tauri::command]
 pub fn exit_app(app: tauri::AppHandle) {
     app.dialog()
@@ -14,6 +19,9 @@ pub fn exit_app(app: tauri::AppHandle) {
         });
 }
 
+/// # Errors
+///
+/// Returns an error if the confirm dialog fails to open.
 #[tauri::command]
 pub async fn show_confirm_dialog(app: tauri::AppHandle, title: String, message: String) -> bool {
     let (tx, rx) = std::sync::mpsc::channel();
@@ -28,6 +36,9 @@ pub async fn show_confirm_dialog(app: tauri::AppHandle, title: String, message: 
     rx.recv().unwrap_or(false)
 }
 
+/// # Errors
+///
+/// Returns an error if the app data directory cannot be retrieved.
 #[tauri::command]
 pub fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
     app.path()

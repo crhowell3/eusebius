@@ -21,7 +21,7 @@ async fn delete_families(family_ids: Vec<String>) -> Result<(), String> {
     let args = to_value(&Args { family_ids }).map_err(|e| e.to_string())?;
     let _ = invoke("delete_families", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -35,7 +35,7 @@ async fn update_family(family: Family) -> Result<(), String> {
     let args = to_value(&Args { family }).map_err(|e| e.to_string())?;
     let _ = invoke("update_family", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -139,7 +139,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
         });
     }
 
-    let sorted_families = sort_families(&*families, &*sort);
+    let sorted_families = sort_families(&families, &sort);
 
     let dirty = *families != *saved_families;
     let some_checked = !(*selected).is_empty();
@@ -235,14 +235,15 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                     title: String,
                 }
 
-                let args = to_value(&DialogArgs {
+                let Ok(args) = to_value(&DialogArgs {
                     message: format!(
                         "Delete {count} selected famil{}? All associated records will also be deleted. This cannot be undone.",
                         if count == 1 { "y" } else { "ies" }
                     ),
                     title: "Confirm Delete".to_string(),
-                })
-                .unwrap();
+                }) else {
+                    return;
+                };
 
                 let Ok(confirmed) = invoke("show_confirm_dialog", args).await else {
                     return;
@@ -253,7 +254,7 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                 }
 
                 match delete_families(to_delete).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         let remaining: Vec<Family> = (*families)
                             .iter()
                             .filter(|m| !(*selected).contains(&m.family_id))
@@ -273,10 +274,8 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
 
     let on_save_edits = {
         let families = families.clone();
-        let saved_families = saved_families.clone();
         let error = error.clone();
         let saving = saving.clone();
-        let mode = mode.clone();
 
         Callback::from(move |_: MouseEvent| {
             let snapshot = (*saved_families).clone();
@@ -314,7 +313,6 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                 return;
             }
 
-            let families = families.clone();
             let saved_families = saved_families.clone();
             let error = error.clone();
             let saving = saving.clone();
@@ -367,18 +365,16 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                             "state" => b.state = value,
                             "zip" => b.zip = value,
                             "email_address" => b.email_address = value,
-                            _ => unreachable!(),
+                            &_ => {}
                         }
                     }
                     next
-                })
+                });
             },
         )
     };
 
     let on_bool_change = {
-        let families = families.clone();
-
         Callback::from(
             move |(family_id, field, value): (String, &'static str, bool)| {
                 families.set({
@@ -388,11 +384,11 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                             "is_member" => f.is_member = value,
                             "is_active" => f.is_active = value,
                             "on_bulletin_email_list" => f.on_bulletin_email_list = value,
-                            _ => unreachable!(),
+                            &_ => {}
                         }
                     }
                     next
-                })
+                });
             },
         )
     };
@@ -525,8 +521,8 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "Family ID" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::FamilyId,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::FamilyId,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -535,8 +531,8 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "Mail Route" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::MailRoute,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::MailRoute,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -545,8 +541,8 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "Last Name" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::LastName,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::LastName,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -555,8 +551,8 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "First Name" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::FirstName,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::FirstName,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -567,8 +563,8 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "DOB" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::DateOfBirth,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::DateOfBirth,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -577,8 +573,8 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "Ann. Month" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::AnniversaryMonth,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::AnniversaryMonth,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -587,8 +583,8 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "Ann. Day" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::AnniversaryDay,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::AnniversaryDay,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -601,8 +597,8 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "City" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::City,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::City,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>
@@ -611,8 +607,8 @@ pub fn families_table(props: &FamiliesTableProps) -> Html {
                                     <span class="works-table-th-inner">
                                         { "State" }
                                         { sort_icon(
-                                            (*sort).column == SortColumn::State,
-                                            &(*sort).dir
+                                            sort.column == SortColumn::State,
+                                            &sort.dir
                                         ) }
                                     </span>
                                 </th>

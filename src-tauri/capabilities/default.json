@@ -6,10 +6,6 @@
     "permissions": [
         "core:default",
         "clipboard-manager:allow-write-text",
-        "opener:default",
-        "sql:allow-execute",
-        "sql:allow-select",
-        "sql:allow-load",
-        "sql:allow-close"
+        "opener:default"
     ]
 }

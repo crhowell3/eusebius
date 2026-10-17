@@ -5,7 +5,7 @@ use yew::prelude::*;
 use crate::components::Toast;
 use crate::utils::{octoberware, writeText};
 
-#[derive(Properties, PartialEq)]
+#[derive(Properties, PartialEq, Eq)]
 pub struct AboutProps {
     pub version: String,
     pub commit: String,
@@ -34,7 +34,7 @@ pub fn about(props: &AboutProps) -> Html {
             let text = text.clone();
             spawn_local(async move {
                 writeText(&text).await;
-            })
+            });
         })
     };
 

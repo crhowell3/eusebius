@@ -14,19 +14,24 @@ struct BackupInfo {
 }
 
 fn format_size(bytes: u64) -> String {
-    if bytes < 1024 {
+    const KIB: u64 = 1024;
+    const MIB: u64 = 1_048_576;
+
+    if bytes < KIB {
         format!("{bytes} B")
-    } else if bytes < 1024 * 1024 {
-        format!("{:.1} KB", bytes as f64 / 1024.0)
+    } else if bytes < MIB {
+        let b = u32::try_from(bytes).unwrap_or(u32::MAX);
+        format!("{:.1} KB", f64::from(b) / 1024.0)
     } else {
-        format!("{:.1} MB", bytes as f64 / (1024.0 * 1024.0))
+        let kb = u32::try_from(bytes / KIB).unwrap_or(u32::MAX);
+        format!("{:.1} MB", f64::from(kb) / 1024.0)
     }
 }
 
 async fn fetch_backups() -> Result<Vec<BackupInfo>, String> {
     let result = invoke("list_backups", JsValue::UNDEFINED)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
     from_value::<Vec<BackupInfo>>(result).map_err(|e| e.to_string())
 }
 
@@ -39,7 +44,7 @@ async fn create_backup(max_backups: u32) -> Result<String, String> {
     let args = to_value(&Args { max_backups }).map_err(|e| e.to_string())?;
     let result = invoke("create_backup", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
     from_value::<String>(result).map_err(|e| e.to_string())
 }
 
@@ -51,7 +56,7 @@ async fn delete_backup(filename: String) -> Result<(), String> {
     let args = to_value(&Args { filename }).map_err(|e| e.to_string())?;
     let _ = invoke("delete_backup", args)
         .await
-        .map_err(|e| e.as_string().unwrap_or("Unknown error".to_string()))?;
+        .map_err(|e| e.as_string().unwrap_or_else(|| "Unknown error".to_string()))?;
 
     Ok(())
 }
@@ -72,14 +77,16 @@ pub fn backups_tab_body() -> Html {
         let loading = loading.clone();
         let error = error.clone();
 
-        use_effect_with((), move |_| {
+        use_effect_with((), move |()| {
             spawn_local(async move {
                 match invoke("get_app_data_dir", JsValue::UNDEFINED).await {
                     Ok(result) => match from_value::<String>(result) {
                         Ok(path) => app_data_dir.set(Some(path)),
                         Err(e) => error.set(Some(e.to_string())),
                     },
-                    Err(e) => error.set(Some(e.as_string().unwrap_or("Unknown error".to_string()))),
+                    Err(e) => error.set(Some(
+                        e.as_string().unwrap_or_else(|| "Unknown error".to_string()),
+                    )),
                 }
 
                 match fetch_backups().await {
@@ -110,7 +117,7 @@ pub fn backups_tab_body() -> Html {
             spawn_local(async move {
                 match create_backup(limit).await {
                     Ok(filename) => {
-                        success.set(Some(format!("Backup created: {}", filename)));
+                        success.set(Some(format!("Backup created: {filename}")));
                         if let Ok(data) = fetch_backups().await {
                             backups.set(data);
                         }
@@ -130,11 +137,11 @@ pub fn backups_tab_body() -> Html {
             let backups = backups.clone();
             let error = error.clone();
             let success = success.clone();
-            let fname = filename.clone();
+            let fname = filename;
             spawn_local(async move {
                 match delete_backup(fname.clone()).await {
-                    Ok(_) => {
-                        success.set(Some(format!("Deleted: {}", fname)));
+                    Ok(()) => {
+                        success.set(Some(format!("Deleted: {fname}")));
                         if let Ok(data) = fetch_backups().await {
                             backups.set(data);
                         }
@@ -149,14 +156,12 @@ pub fn backups_tab_body() -> Html {
     let on_max_change = {
         let max_backups = max_backups.clone();
         Callback::from(move |e: Event| {
-            use wasm_bindgen::JsCast;
             use web_sys::HtmlInputElement;
-            if let Ok(input) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
-                if let Ok(val) = input.value().parse::<u32>() {
-                    if val > 0 {
-                        max_backups.set(val);
-                    }
-                }
+            if let Some(input) = e.target_dyn_into::<HtmlInputElement>()
+                && let Ok(val) = input.value().parse::<u32>()
+                && val > 0
+            {
+                max_backups.set(val);
             }
         })
     };

@@ -1,3 +1,5 @@
+#![allow(clippy::needless_pass_by_value)]
+
 use std::fs;
 use std::path::PathBuf;
 use tauri::Manager;
@@ -15,8 +17,7 @@ pub fn load_initial_settings(app: &tauri::AppHandle) -> AppSettings {
     let path = app
         .path()
         .app_data_dir()
-        .map(|d| d.join("settings.toml"))
-        .unwrap_or_default();
+        .map_or_default(|d| d.join("settings.toml"));
 
     if path.exists() {
         fs::read_to_string(&path)
@@ -28,6 +29,9 @@ pub fn load_initial_settings(app: &tauri::AppHandle) -> AppSettings {
     }
 }
 
+/// # Errors
+///
+/// Returns an error if the settings file cannot be read.
 #[tauri::command]
 pub fn load_settings(app: tauri::AppHandle) -> Result<AppSettings, String> {
     let path = settings_path(&app)?;
@@ -42,6 +46,9 @@ pub fn load_settings(app: tauri::AppHandle) -> Result<AppSettings, String> {
     toml::from_str::<AppSettings>(&contents).map_err(|e| format!("Failed to parse settings: {e}"))
 }
 
+/// # Errors
+///
+/// Returns an error if the settings file cannot be written.
 #[tauri::command]
 pub fn save_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<(), String> {
     let path = settings_path(&app)?;
@@ -54,6 +61,9 @@ pub fn save_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<(),
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if the settings file cannot be written.
 #[tauri::command]
 pub fn reset_settings(app: tauri::AppHandle) -> Result<AppSettings, String> {
     let defaults = AppSettings::default();
